@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>PWA Icon Generator</title>
+</head>
+<body>
+    <canvas id="canvas192" width="192" height="192"></canvas>
+    <canvas id="canvas512" width="512" height="512"></canvas>
+    
+    <script>
+        function createIcon(canvas, size) {
+            const ctx = canvas.getContext('2d');
+            
+            // Background
+            ctx.fillStyle = '#2563eb';
+            ctx.roundRect(0, 0, size, size, size * 0.125);
+            ctx.fill();
+            
+            // Package shape
+            const packageSize = size * 0.5;
+            const x = (size - packageSize) / 2;
+            const y = size * 0.3;
+            
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+            ctx.roundRect(x, y, packageSize, packageSize * 0.75, size * 0.02);
+            ctx.fill();
+            
+            ctx.fillStyle = '#1d4ed8';
+            ctx.roundRect(x, y, packageSize, packageSize * 0.2, size * 0.02);
+            ctx.fill();
+            
+            // E3 text
+            ctx.fillStyle = 'white';
+            ctx.font = `bold ${size * 0.1}px system-ui, sans-serif`;
+            ctx.textAlign = 'center';
+            ctx.fillText('E3', size / 2, y + packageSize * 0.55);
+        }
+        
+        // Create icons
+        createIcon(document.getElementById('canvas192'), 192);
+        createIcon(document.getElementById('canvas512'), 512);
+        
+        // Download links would be added here
+        console.log('Icons generated in canvas elements');
+    </script>
+</body>
+</html>

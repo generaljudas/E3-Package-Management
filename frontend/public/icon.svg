@@ -1,0 +1,13 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="512" height="512" rx="64" fill="#2563eb"/>
+  
+  <!-- Package box icon -->
+  <path d="M128 192h256v192c0 17.6-14.4 32-32 32H160c-17.6 0-32-14.4-32-32V192z" fill="white" opacity="0.9"/>
+  <path d="M128 192h256l-32-64H160l-32 64z" fill="white" opacity="0.7"/>
+  <path d="M240 128h32v128h-32z" fill="#1d4ed8"/>
+  <path d="M128 192h256v32H128z" fill="#1d4ed8" opacity="0.5"/>
+  
+  <!-- E3 text -->
+  <text x="256" y="320" font-family="system-ui, sans-serif" font-size="48" font-weight="bold" text-anchor="middle" fill="white">E3</text>
+</svg>
