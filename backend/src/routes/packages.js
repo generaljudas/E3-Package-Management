@@ -1,0 +1,526 @@
+import express from 'express';
+import { body, param, query, validationResult } from 'express-validator';
+import { query as dbQuery, transaction } from '../models/database.js';
+
+const router = express.Router();
+
+// Validation middleware
+const handleValidationErrors = (req, res, next) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({
+      error: 'Validation failed',
+      details: errors.array(),
+    });
+  }
+  next();
+};
+
+/**
+ * GET /api/packages
+ * Get packages with filtering options
+ * Performance target: < 300ms for 1000 packages
+ */
+router.get('/', [
+  query('tenant_id').optional().isInt().withMessage('Tenant ID must be an integer'),
+  query('status').optional().isIn(['received', 'ready_for_pickup', 'picked_up', 'returned_to_sender']),
+  query('limit').optional().isInt({ min: 1, max: 1000 }).withMessage('Limit must be 1-1000'),
+  query('offset').optional().isInt({ min: 0 }).withMessage('Offset must be >= 0'),
+  handleValidationErrors,
+], async (req, res) => {
+  try {
+    const {
+      tenant_id,
+      status,
+      tracking_number,
+      limit = 50,
+      offset = 0,
+    } = req.query;
+
+    let whereConditions = ['1=1'];
+    let params = [];
+    let paramCount = 0;
+
+    // Build dynamic WHERE clause
+    if (tenant_id) {
+      paramCount++;
+      whereConditions.push(`p.tenant_id = $${paramCount}`);
+      params.push(parseInt(tenant_id));
+    }
+
+    if (status) {
+      paramCount++;
+      whereConditions.push(`p.status = $${paramCount}`);
+      params.push(status);
+    }
+
+    if (tracking_number) {
+      paramCount++;
+      whereConditions.push(`p.tracking_number ILIKE $${paramCount}`);
+      params.push(`%${tracking_number}%`);
+    }
+
+    // Add limit and offset
+    paramCount++;
+    const limitParam = `$${paramCount}`;
+    params.push(parseInt(limit));
+    
+    paramCount++;
+    const offsetParam = `$${paramCount}`;
+    params.push(parseInt(offset));
+
+    const result = await dbQuery(`
+      SELECT 
+        p.id,
+        p.tracking_number,
+        p.tenant_id,
+        p.status,
+        p.high_value,
+        p.pickup_by,
+        p.carrier,
+        p.size_category,
+        p.notes,
+        p.received_at,
+        p.picked_up_at,
+        t.mailbox_number,
+        t.name as tenant_name,
+        t.phone as tenant_phone
+      FROM packages p
+      JOIN tenants t ON p.tenant_id = t.id
+      WHERE ${whereConditions.join(' AND ')}
+      ORDER BY p.received_at DESC
+      LIMIT ${limitParam} OFFSET ${offsetParam}
+    `, params);
+
+    // Get total count for pagination
+    const countResult = await dbQuery(`
+      SELECT COUNT(*) as total
+      FROM packages p
+      WHERE ${whereConditions.slice(0, -2).join(' AND ')}
+    `, params.slice(0, -2));
+
+    res.json({
+      packages: result.rows,
+      pagination: {
+        total: parseInt(countResult.rows[0].total),
+        limit: parseInt(limit),
+        offset: parseInt(offset),
+        has_more: (parseInt(offset) + parseInt(limit)) < parseInt(countResult.rows[0].total),
+      },
+    });
+  } catch (err) {
+    console.error('Error fetching packages:', err);
+    res.status(500).json({ error: 'Failed to fetch packages' });
+  }
+});
+
+/**
+ * GET /api/packages/tenant/:tenantId
+ * Get packages for a specific tenant (for pickup interface)
+ * Performance target: < 300ms
+ */
+router.get('/tenant/:tenantId', [
+  param('tenantId').isInt().withMessage('Tenant ID must be an integer'),
+  query('status').optional().isIn(['received', 'ready_for_pickup', 'picked_up', 'returned_to_sender']),
+  handleValidationErrors,
+], async (req, res) => {
+  try {
+    const { tenantId } = req.params;
+    const { status = 'received,ready_for_pickup' } = req.query;
+    
+    // Parse status filter
+    const statusArray = status.split(',').map(s => s.trim());
+    const statusPlaceholders = statusArray.map((_, i) => `$${i + 2}`).join(',');
+
+    const result = await dbQuery(`
+      SELECT 
+        p.id,
+        p.tracking_number,
+        p.status,
+        p.high_value,
+        p.pickup_by,
+        p.carrier,
+        p.size_category,
+        p.notes,
+        p.received_at,
+        t.mailbox_number,
+        t.name as tenant_name
+      FROM packages p
+      JOIN tenants t ON p.tenant_id = t.id
+      WHERE p.tenant_id = $1 
+        AND p.status IN (${statusPlaceholders})
+      ORDER BY p.received_at DESC
+    `, [parseInt(tenantId), ...statusArray]);
+
+    res.json({
+      packages: result.rows,
+      tenant_id: parseInt(tenantId),
+      count: result.rows.length,
+    });
+  } catch (err) {
+    console.error('Error fetching tenant packages:', err);
+    res.status(500).json({ error: 'Failed to fetch tenant packages' });
+  }
+});
+
+/**
+ * GET /api/packages/mailbox/:mailboxId
+ * Get all packages for a specific mailbox (for pickup interface)
+ * Performance target: < 300ms
+ */
+router.get('/mailbox/:mailboxId', [
+  param('mailboxId').isInt().withMessage('Mailbox ID must be an integer'),
+  query('status').optional().isIn(['received', 'ready_for_pickup', 'picked_up', 'returned_to_sender']),
+  query('limit').optional().isInt({ min: 1, max: 1000 }).withMessage('Limit must be 1-1000'),
+  handleValidationErrors,
+], async (req, res) => {
+  try {
+    const { mailboxId } = req.params;
+    const { status, limit = 100 } = req.query;
+
+    let whereConditions = ['m.id = $1'];
+    let params = [parseInt(mailboxId)];
+    let paramCount = 1;
+
+    if (status) {
+      paramCount++;
+      whereConditions.push(`p.status = $${paramCount}`);
+      params.push(status);
+    }
+
+    const result = await dbQuery(`
+      SELECT 
+        p.id,
+        p.tracking_number,
+        p.mailbox_id,
+        p.tenant_id,
+        p.status,
+        p.carrier,
+        p.size_category as size,
+        p.recipient_name,
+        p.recipient_phone,
+        p.notes,
+        p.received_at,
+        p.received_by,
+        p.pickup_date,
+        p.pickup_signature,
+        m.mailbox_number,
+        t.name as tenant_name,
+        t.email as tenant_email
+      FROM packages p
+      JOIN mailboxes m ON p.mailbox_id = m.id
+      LEFT JOIN tenants t ON p.tenant_id = t.id
+      WHERE ${whereConditions.join(' AND ')}
+      ORDER BY p.received_at DESC
+      LIMIT $${paramCount + 1}
+    `, [...params, parseInt(limit)]);
+
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Error fetching mailbox packages:', err);
+    res.status(500).json({ error: 'Failed to fetch mailbox packages' });
+  }
+});
+
+/**
+ * GET /api/packages/tracking/:trackingNumber
+ * Get package by tracking number
+ * Performance target: < 200ms
+ */
+router.get('/tracking/:trackingNumber', [
+  param('trackingNumber').isLength({ min: 1 }).withMessage('Tracking number is required'),
+  handleValidationErrors,
+], async (req, res) => {
+  try {
+    const { trackingNumber } = req.params;
+    
+    const result = await dbQuery(`
+      SELECT 
+        p.id,
+        p.tracking_number,
+        p.tenant_id,
+        p.status,
+        p.high_value,
+        p.pickup_by,
+        p.carrier,
+        p.size_category,
+        p.notes,
+        p.received_at,
+        p.picked_up_at,
+        t.mailbox_number,
+        t.name as tenant_name,
+        t.phone as tenant_phone,
+        t.email as tenant_email
+      FROM packages p
+      JOIN tenants t ON p.tenant_id = t.id
+      WHERE p.tracking_number = $1
+    `, [trackingNumber]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ 
+        error: 'Package not found',
+        tracking_number: trackingNumber,
+      });
+    }
+
+    res.json({
+      package: result.rows[0],
+    });
+  } catch (err) {
+    console.error('Error fetching package by tracking:', err);
+    res.status(500).json({ error: 'Failed to fetch package' });
+  }
+});
+
+/**
+ * POST /api/packages
+ * Create new package (package intake) - SIMPLIFIED FLOW
+ * Only requires: tracking_number + tenant_id
+ * All other fields optional with sensible defaults
+ * Performance target: < 200ms scan-to-save
+ */
+router.post('/', [
+  body('tracking_number')
+    .isLength({ min: 1, max: 255 })
+    .withMessage('Tracking number is required and must be 1-255 characters'),
+  body('tenant_id')
+    .isInt({ min: 1 })
+    .withMessage('Valid tenant ID is required'),
+  // Optional fields - no validation required during intake
+  body('high_value').optional().isBoolean(),
+  body('pickup_by').optional().isLength({ max: 255 }),
+  body('carrier').optional().isLength({ max: 100 }),
+  body('size_category').optional().isIn(['small', 'medium', 'large', 'oversized']),
+  body('notes').optional(),
+  handleValidationErrors,
+], async (req, res) => {
+  try {
+    const {
+      tracking_number,
+      tenant_id,
+      // Optional fields with defaults
+      high_value = false,
+      pickup_by = null,
+      carrier = null,
+      size_category = null,
+      notes = null,
+    } = req.body;
+
+    // Verify tenant exists and is active, get mailbox_id and mailbox_number via join
+    const tenantResult = await dbQuery(
+      `SELECT t.id, t.name, t.mailbox_id, m.mailbox_number
+       FROM tenants t
+       JOIN mailboxes m ON t.mailbox_id = m.id
+       WHERE t.id = $1 AND t.active = TRUE`,
+      [tenant_id]
+    );
+
+    if (tenantResult.rows.length === 0) {
+      return res.status(404).json({
+        error: 'Tenant not found or inactive',
+        tenant_id,
+      });
+    }
+
+    const mailbox_id = tenantResult.rows[0].mailbox_id;
+
+    // Check if tracking number already exists
+    const existingResult = await dbQuery(
+      'SELECT id FROM packages WHERE tracking_number = $1',
+      [tracking_number]
+    );
+
+    if (existingResult.rows.length > 0) {
+      return res.status(409).json({
+        error: 'Package with this tracking number already exists',
+        tracking_number,
+        existing_package_id: existingResult.rows[0].id,
+      });
+    }
+
+    // Create package - SIMPLIFIED: minimal required fields
+    const result = await dbQuery(`
+      INSERT INTO packages (
+        tracking_number,
+        mailbox_id,
+        tenant_id,
+        high_value,
+        pickup_by,
+        carrier,
+        size_category,
+        notes,
+        status
+      )
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'received')
+      RETURNING 
+        id,
+        tracking_number,
+        mailbox_id,
+        tenant_id,
+        status,
+        high_value,
+        carrier,
+        size_category,
+        received_at
+    `, [
+      tracking_number,
+      mailbox_id,
+      tenant_id,
+      high_value,
+      pickup_by,
+      carrier,
+      size_category,
+      notes,
+    ]);
+
+    res.status(201).json({
+      package: {
+        ...result.rows[0],
+        tenant_name: tenantResult.rows[0].name,
+        tenant_mailbox: tenantResult.rows[0].mailbox_number,
+      },
+      message: 'Package registered successfully',
+    });
+  } catch (err) {
+    console.error('Error creating package:', err);
+    res.status(500).json({ error: 'Failed to register package' });
+  }
+});
+
+/**
+ * PUT /api/packages/:id/status
+ * Update package status
+ */
+router.put('/:id/status', [
+  param('id').isInt().withMessage('Package ID must be an integer'),
+  body('status')
+    .isIn(['received', 'ready_for_pickup', 'picked_up', 'returned_to_sender'])
+    .withMessage('Invalid status'),
+  handleValidationErrors,
+], async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status, notes } = req.body;
+
+    // If status is 'picked_up', set picked_up_at timestamp
+    let updateQuery;
+    let params;
+
+    if (status === 'picked_up') {
+      updateQuery = `
+        UPDATE packages 
+        SET status = $1, picked_up_at = CURRENT_TIMESTAMP, notes = COALESCE($2, notes), updated_at = CURRENT_TIMESTAMP
+        WHERE id = $3
+        RETURNING id, tracking_number, status, picked_up_at
+      `;
+      params = [status, notes, id];
+    } else {
+      updateQuery = `
+        UPDATE packages 
+        SET status = $1, notes = COALESCE($2, notes), updated_at = CURRENT_TIMESTAMP
+        WHERE id = $3
+        RETURNING id, tracking_number, status, picked_up_at
+      `;
+      params = [status, notes, id];
+    }
+
+    const result = await dbQuery(updateQuery, params);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ 
+        error: 'Package not found',
+        id: parseInt(id),
+      });
+    }
+
+    res.json({
+      package: result.rows[0],
+      message: 'Package status updated successfully',
+    });
+  } catch (err) {
+    console.error('Error updating package status:', err);
+    res.status(500).json({ error: 'Failed to update package status' });
+  }
+});
+
+/**
+ * PUT /api/packages/:id
+ * Update package details
+ */
+router.put('/:id', [
+  param('id').isInt().withMessage('Package ID must be an integer'),
+  body('high_value').optional().isBoolean().withMessage('High value must be boolean'),
+  body('pickup_by').optional().isLength({ max: 255 }).withMessage('Pickup by must be 255 characters or less'),
+  body('carrier').optional().isLength({ max: 100 }).withMessage('Carrier must be 100 characters or less'),
+  body('size_category').optional().isIn(['small', 'medium', 'large', 'oversized']),
+  handleValidationErrors,
+], async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { high_value, pickup_by, carrier, size_category, notes } = req.body;
+
+    const result = await dbQuery(`
+      UPDATE packages 
+      SET 
+        high_value = COALESCE($1, high_value),
+        pickup_by = COALESCE($2, pickup_by),
+        carrier = COALESCE($3, carrier),
+        size_category = COALESCE($4, size_category),
+        notes = COALESCE($5, notes),
+        updated_at = CURRENT_TIMESTAMP
+      WHERE id = $6
+      RETURNING id, tracking_number, high_value, pickup_by, carrier, size_category, notes, updated_at
+    `, [high_value, pickup_by, carrier, size_category, notes, id]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ 
+        error: 'Package not found',
+        id: parseInt(id),
+      });
+    }
+
+    res.json({
+      package: result.rows[0],
+      message: 'Package updated successfully',
+    });
+  } catch (err) {
+    console.error('Error updating package:', err);
+    res.status(500).json({ error: 'Failed to update package' });
+  }
+});
+
+/**
+ * DELETE /api/packages/:id
+ * Delete package (should be used sparingly, prefer status updates)
+ */
+router.delete('/:id', [
+  param('id').isInt().withMessage('Package ID must be an integer'),
+  handleValidationErrors,
+], async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const result = await dbQuery(`
+      DELETE FROM packages 
+      WHERE id = $1
+      RETURNING id, tracking_number
+    `, [id]);
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ 
+        error: 'Package not found',
+        id: parseInt(id),
+      });
+    }
+
+    res.json({
+      message: 'Package deleted successfully',
+      deleted_package: result.rows[0],
+    });
+  } catch (err) {
+    console.error('Error deleting package:', err);
+    res.status(500).json({ error: 'Failed to delete package' });
+  }
+});
+
+export default router;
