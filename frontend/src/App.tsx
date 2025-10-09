@@ -85,16 +85,16 @@ function Dashboard() {
   // };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+  <div className="min-h-screen bg-gray-50 tw:bg-gradient-to-b tw:from-white tw:to-brand-50">
       {/* Offline Status Bar */}
       <OfflineStatusBar />
       
       {/* Header */}
-      <header className="bg-white shadow-sm border-b border-gray-200">
+      <header className="bg-white shadow-sm border-b border-gray-200 tw:backdrop-blur tw:bg-white/80">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
             <div className="flex items-center">
-              <h1 className="text-2xl font-bold text-gray-900">
+              <h1 className="text-2xl font-bold text-gray-900 tw:tracking-tight" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>
                 📦 E3 Package Manager
               </h1>
               <span className="ml-3 text-sm text-gray-500 font-mono">
@@ -151,8 +151,8 @@ function Dashboard() {
           {/* Right Column - Main Action Area */}
           <div className="lg:col-span-2">
             {/* Navigation Buttons */}
-            <div className="bg-white rounded-lg shadow-sm mb-6 p-4">
-              <nav className="flex gap-3" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>
+            <div className="bg-white rounded-lg shadow-sm mb-6 p-4 tw:shadow-soft">
+              <nav className="flex gap-3 tw:*:transition-colors" style={{ fontFamily: 'Helvetica, Arial, sans-serif' }}>
                 {[ 
                   { id: 'intake', label: 'Package Intake' },
                   { id: 'pickup', label: 'Package Pickup' },
@@ -163,9 +163,9 @@ function Dashboard() {
                     <button
                       key={tab.id}
                       onClick={() => setCurrentView(tab.id as any)}
-                      className={`flex-1 py-4 px-6 rounded-lg transition-colors text-lg font-medium focus:outline-none focus:ring-2 focus:ring-blue-300 focus:ring-offset-1 ${
+                      className={`flex-1 py-4 px-6 rounded-lg transition-colors text-lg font-medium focus:outline-none focus:ring-2 focus:ring-blue-300 focus:ring-offset-1 tw:tracking-wide ${
                         isActive
-                          ? 'bg-blue-700 text-white shadow-md'
+                          ? 'bg-blue-700 text-white shadow-md tw:shadow-soft'
                           : 'bg-blue-600 text-white hover:bg-blue-700 shadow'
                       }`}
                     >
@@ -177,7 +177,7 @@ function Dashboard() {
             </div>
 
             {/* Main Content Area */}
-            <div className="bg-white rounded-lg shadow-sm p-6">
+            <div className="bg-white rounded-lg shadow-sm p-6 tw:shadow-soft">
               {!selectedMailbox ? (
                 <div className="text-center py-12">
                   <div className="text-6xl mb-4">📬</div>
