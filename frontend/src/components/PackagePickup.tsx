@@ -355,8 +355,8 @@ export const PackagePickup: React.FC<PackagePickupProps> = ({
               </div>
             </div>
 
-            {/* Search Input */}
-            <div style={{ padding: '1.5rem 1.5rem 0' }}>
+            {/* Search Input and Select All */}
+            <div style={{ padding: '1.5rem 1.5rem 0', display: 'flex', gap: '0.75rem' }}>
               <input
                 ref={searchRef}
                 type="text"
@@ -366,8 +366,58 @@ export const PackagePickup: React.FC<PackagePickupProps> = ({
                 className="input-field"
                 tabIndex={1}
                 data-testid="pickup-search-input"
-                style={{ width: '100%' }}
+                style={{ flex: 1 }}
               />
+              <button
+                onClick={() => {
+                  const availablePackages = filteredPackages.filter(pkg => 
+                    ['received', 'ready_for_pickup'].includes(pkg.status)
+                  );
+                  setWorkflow(prev => ({
+                    ...prev,
+                    selectedPackages: availablePackages
+                  }));
+                }}
+                disabled={filteredPackages.filter(pkg => ['received', 'ready_for_pickup'].includes(pkg.status)).length === 0}
+                className="btn btn-secondary"
+                data-testid="pickup-select-all-button"
+                style={{
+                  padding: '0.75rem 1.5rem',
+                  fontSize: '0.875rem',
+                  fontWeight: '600',
+                  whiteSpace: 'nowrap',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  opacity: filteredPackages.filter(pkg => ['received', 'ready_for_pickup'].includes(pkg.status)).length === 0 ? 0.5 : 1,
+                  cursor: filteredPackages.filter(pkg => ['received', 'ready_for_pickup'].includes(pkg.status)).length === 0 ? 'not-allowed' : 'pointer'
+                }}
+              >
+                <span>☑️</span> Select All
+              </button>
+              {workflow.selectedPackages.length > 0 && (
+                <button
+                  onClick={() => {
+                    setWorkflow(prev => ({
+                      ...prev,
+                      selectedPackages: []
+                    }));
+                  }}
+                  className="btn btn-secondary"
+                  data-testid="pickup-clear-all-button"
+                  style={{
+                    padding: '0.75rem 1.5rem',
+                    fontSize: '0.875rem',
+                    fontWeight: '600',
+                    whiteSpace: 'nowrap',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem'
+                  }}
+                >
+                  <span>✖️</span> Clear All
+                </button>
+              )}
             </div>
 
             {/* Package List */}
