@@ -7,6 +7,7 @@ import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 
 // Import routes
+import mailboxRoutes from './routes/mailboxes.js';
 import tenantRoutes from './routes/tenants.js';
 import packageRoutes from './routes/packages.js';
 import pickupRoutes from './routes/pickups.js';
@@ -82,6 +83,7 @@ app.get('/health', (req, res) => {
 });
 
 // API routes
+app.use('/api/mailboxes', mailboxRoutes);
 app.use('/api/tenants', tenantRoutes);
 app.use('/api/packages', packageRoutes);
 app.use('/api/pickups', pickupRoutes);
