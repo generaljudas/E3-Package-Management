@@ -73,14 +73,17 @@ function Dashboard() {
           tabs={NAVIGATION_TABS}
         />
         
-        <MailboxSelectionCard
-          onMailboxSelect={handleMailboxSelect}
-          onTenantChange={handleTenantChange}
-          onDefaultTenantUpdate={(success: boolean, message: string) => {
-            showToast(success ? 'success' : 'error', message);
-          }}
-          onClearSelection={handleClearSelection}
-        />
+        {/* Only show mailbox selection for intake and pickup views */}
+        {currentView !== 'tools' && (
+          <MailboxSelectionCard
+            onMailboxSelect={handleMailboxSelect}
+            onTenantChange={handleTenantChange}
+            onDefaultTenantUpdate={(success: boolean, message: string) => {
+              showToast(success ? 'success' : 'error', message);
+            }}
+            onClearSelection={handleClearSelection}
+          />
+        )}
 
         <div 
           data-testid="app-main-content-area"
@@ -93,7 +96,15 @@ function Dashboard() {
             minHeight: '500px'
           }}
         >
-          {!selectedMailbox ? (
+          {/* Tools view is always available without mailbox selection */}
+          {currentView === 'tools' ? (
+            <Tools
+              selectedMailbox={selectedMailbox}
+              selectedTenant={selectedTenant}
+              onError={(error) => showToast('error', error)}
+              onSuccess={(message) => showToast('success', message)}
+            />
+          ) : !selectedMailbox ? (
             <EmptyState
               icon={EMPTY_STATE.icon}
               title={EMPTY_STATE.title}
@@ -136,14 +147,6 @@ function Dashboard() {
                           showToast('success', `Pickup completed: ${count} package${plural}`);
                         }
                       }}
-                      onError={(error) => showToast('error', error)}
-                    />
-                  )}
-
-                  {currentView === 'tools' && (
-                    <Tools
-                      selectedMailbox={selectedMailbox}
-                      selectedTenant={selectedTenant}
                       onError={(error) => showToast('error', error)}
                     />
                   )}

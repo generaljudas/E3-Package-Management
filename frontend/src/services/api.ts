@@ -57,6 +57,42 @@ async function apiRequest<T>(
   }
 }
 
+// Mailbox API methods
+export const mailboxApi = {
+  // Get all mailboxes
+  async getAll() {
+    return apiRequest<import('../types').MailboxesResponse>('/mailboxes');
+  },
+
+  // Get mailbox by ID
+  async getById(id: number) {
+    return apiRequest<{ mailbox: import('../types').Mailbox }>(`/mailboxes/${id}`);
+  },
+
+  // Create new mailbox
+  async create(mailbox: { mailbox_number: string; notes?: string }) {
+    return apiRequest<{ mailbox: import('../types').Mailbox; message: string }>('/mailboxes', {
+      method: 'POST',
+      body: JSON.stringify(mailbox),
+    });
+  },
+
+  // Update mailbox
+  async update(id: number, updates: Partial<import('../types').Mailbox>) {
+    return apiRequest<{ mailbox: import('../types').Mailbox; message: string }>(`/mailboxes/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(updates),
+    });
+  },
+
+  // Delete mailbox
+  async delete(id: number) {
+    return apiRequest<{ message: string }>(`/mailboxes/${id}`, {
+      method: 'DELETE',
+    });
+  },
+};
+
 // Tenant API methods
 export const tenantApi = {
   // Get all active tenants (for preloading)
@@ -74,6 +110,11 @@ export const tenantApi = {
   async getByMailbox(mailboxNumber: string) {
     const encoded = encodeURIComponent(mailboxNumber);
     return apiRequest<{ tenant: import('../types').Tenant }>(`/tenants/mailbox/${encoded}`);
+  },
+
+  // Get all tenants for a specific mailbox ID
+  async getByMailboxId(mailboxId: number) {
+    return apiRequest<import('../types').TenantsResponse>(`/tenants?mailbox_id=${mailboxId}`);
   },
 
   // Get tenant by ID
