@@ -25,6 +25,9 @@ const MailboxTenantManagement: React.FC<MailboxTenantManagementProps> = ({ onErr
     selectedTenant: null,
   });
 
+  // Search state
+  const [searchQuery, setSearchQuery] = useState('');
+
   // Form states
   const [newMailboxNumber, setNewMailboxNumber] = useState('');
   const [tenantForm, setTenantForm] = useState({
@@ -227,6 +230,17 @@ const MailboxTenantManagement: React.FC<MailboxTenantManagementProps> = ({ onErr
     });
   };
 
+  // Filter mailboxes based on search query
+  const filteredMailboxes = mailboxes.filter((mailbox) => {
+    if (!searchQuery.trim()) return true;
+    
+    const query = searchQuery.toLowerCase().trim();
+    const mailboxNumberMatch = mailbox.mailbox_number.toLowerCase().includes(query);
+    const defaultTenantMatch = mailbox.default_tenant_name?.toLowerCase().includes(query);
+    
+    return mailboxNumberMatch || defaultTenantMatch;
+  });
+
   // Render loading state
   if (loading && viewState.mode === 'list' && mailboxes.length === 0) {
     return (
@@ -252,6 +266,30 @@ const MailboxTenantManagement: React.FC<MailboxTenantManagementProps> = ({ onErr
           </button>
         </div>
 
+        {/* Search Bar */}
+        <div className="relative">
+          <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+            <span className="text-gray-400 text-xl">🔍</span>
+          </div>
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search by mailbox number or tenant name..."
+            className="w-full pl-12 pr-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-lg"
+            data-testid="mailbox-search-input"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-600"
+              data-testid="clear-search-button"
+            >
+              ✕
+            </button>
+          )}
+        </div>
+
         {mailboxes.length === 0 ? (
           <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
             <div className="text-5xl mb-4">📭</div>
@@ -263,31 +301,55 @@ const MailboxTenantManagement: React.FC<MailboxTenantManagementProps> = ({ onErr
               Create your first mailbox
             </button>
           </div>
+        ) : filteredMailboxes.length === 0 ? (
+          <div className="text-center py-12 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300">
+            <div className="text-5xl mb-4">🔍</div>
+            <p className="text-gray-600 mb-2">No mailboxes match your search</p>
+            <p className="text-sm text-gray-500">
+              Try searching for a different mailbox number or tenant name
+            </p>
+            <button
+              onClick={() => setSearchQuery('')}
+              className="mt-4 text-blue-600 hover:text-blue-800 font-medium"
+            >
+              Clear search
+            </button>
+          </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {mailboxes.map((mailbox) => (
-              <button
-                key={mailbox.id}
-                onClick={() => handleViewMailbox(mailbox)}
-                className="bg-white border-2 border-gray-200 hover:border-blue-400 hover:shadow-lg rounded-lg p-6 transition-all text-left"
-                data-testid={`mailbox-card-${mailbox.mailbox_number}`}
-              >
-                <div className="flex items-center space-x-3 mb-2">
-                  <div className="text-3xl">📬</div>
-                  <div>
-                    <h5 className="text-lg font-bold text-gray-900">
-                      Mailbox {mailbox.mailbox_number}
-                    </h5>
-                    <p className="text-sm text-gray-500">
-                      ID: {mailbox.id}
-                    </p>
+          <div>
+            <div className="text-sm text-gray-600 mb-3">
+              Showing {filteredMailboxes.length} of {mailboxes.length} mailbox{mailboxes.length !== 1 ? 'es' : ''}
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {filteredMailboxes.map((mailbox) => (
+                <button
+                  key={mailbox.id}
+                  onClick={() => handleViewMailbox(mailbox)}
+                  className="bg-white border-2 border-gray-200 hover:border-blue-400 hover:shadow-lg rounded-lg p-6 transition-all text-left"
+                  data-testid={`mailbox-card-${mailbox.mailbox_number}`}
+                >
+                  <div className="flex items-center space-x-3 mb-2">
+                    <div className="text-3xl">📬</div>
+                    <div>
+                      <h5 className="text-lg font-bold text-gray-900">
+                        Mailbox {mailbox.mailbox_number}
+                      </h5>
+                      <p className="text-sm text-gray-500">
+                        ID: {mailbox.id}
+                      </p>
+                    </div>
                   </div>
-                </div>
-                <div className="text-sm text-gray-600 mt-3">
-                  Click to view tenants →
-                </div>
-              </button>
-            ))}
+                  {mailbox.default_tenant_name && (
+                    <p className="text-sm text-gray-600 mt-2">
+                      👤 {mailbox.default_tenant_name}
+                    </p>
+                  )}
+                  <div className="text-sm text-gray-600 mt-3">
+                    Click to view tenants →
+                  </div>
+                </button>
+              ))}
+            </div>
           </div>
         )}
       </div>
