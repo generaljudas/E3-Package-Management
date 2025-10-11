@@ -410,12 +410,11 @@ export const PackagePickup: React.FC<PackagePickupProps> = ({
                       data-testid="pickup-table"
                     >
                       <colgroup>
-                        <col style={{ width: '38%' }} />
-                        <col style={{ width: '12%' }} />
+                        <col style={{ width: '42%' }} />
+                        <col style={{ width: '14%' }} />
                         <col style={{ width: '16%' }} />
-                        <col style={{ width: '10%' }} />
-                        <col style={{ width: '12%' }} />
-                        <col style={{ width: '12%' }} />
+                        <col style={{ width: '14%' }} />
+                        <col style={{ width: '14%' }} />
                       </colgroup>
                       <thead 
                         style={{
@@ -431,7 +430,6 @@ export const PackagePickup: React.FC<PackagePickupProps> = ({
                           <th style={{ padding: '0.75rem 0.5rem', textAlign: 'left' }} data-testid="pickup-col-tracking">Tracking</th>
                           <th style={{ padding: '0.75rem 0.5rem', textAlign: 'left' }} data-testid="pickup-col-status">Status</th>
                           <th style={{ padding: '0.75rem 0.5rem', textAlign: 'left' }} data-testid="pickup-col-carrier">Carrier</th>
-                          <th style={{ padding: '0.75rem 0.5rem', textAlign: 'left' }} data-testid="pickup-col-size">Size</th>
                           <th style={{ padding: '0.75rem 0.5rem', textAlign: 'left' }} data-testid="pickup-col-received">Received</th>
                           <th style={{ padding: '0.75rem 0.5rem', textAlign: 'left' }} data-testid="pickup-col-pickup-date">Pick up date</th>
                         </tr>
@@ -509,9 +507,6 @@ export const PackagePickup: React.FC<PackagePickupProps> = ({
                               </td>
                               <td style={{ padding: '0.75rem 0.5rem', verticalAlign: 'middle', color: 'var(--color-gray-700)', whiteSpace: 'nowrap' }}>
                                 {pkg.carrier ? pkg.carrier.toUpperCase() : 'N/A'}
-                              </td>
-                              <td style={{ padding: '0.75rem 0.5rem', verticalAlign: 'middle', color: 'var(--color-gray-700)', whiteSpace: 'nowrap' }}>
-                                {pkg.size ? pkg.size.replace('_', ' ') : 'N/A'}
                               </td>
                               <td style={{ padding: '0.75rem 0.5rem', verticalAlign: 'middle', color: 'var(--color-gray-700)', whiteSpace: 'nowrap' }}>
                                 {formatDate(pkg.received_at)}
