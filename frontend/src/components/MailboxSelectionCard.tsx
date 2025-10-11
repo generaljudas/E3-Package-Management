@@ -5,12 +5,14 @@ interface MailboxSelectionCardProps {
   onMailboxSelect: (mailbox: Mailbox, defaultTenant?: Tenant) => void;
   onTenantChange: (tenant: Tenant | null) => void;
   onDefaultTenantUpdate: (success: boolean, message: string) => void;
+  onClearSelection?: () => void;
 }
 
 export function MailboxSelectionCard({
   onMailboxSelect,
   onTenantChange,
-  onDefaultTenantUpdate
+  onDefaultTenantUpdate,
+  onClearSelection
 }: MailboxSelectionCardProps) {
   return (
     <div 
@@ -46,6 +48,7 @@ export function MailboxSelectionCard({
         onMailboxSelect={onMailboxSelect}
         onTenantChange={onTenantChange}
         onDefaultTenantUpdate={onDefaultTenantUpdate}
+        onClearSelection={onClearSelection}
         placeholder="Type mailbox number (e.g., 145) or tenant name..."
         autoFocus={true}
       />
