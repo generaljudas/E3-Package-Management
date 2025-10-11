@@ -19,23 +19,38 @@ const handleValidationErrors = (req, res, next) => {
 /**
  * GET /api/tenants
  * Get all active tenants (for preloading into frontend cache)
+ * Supports optional mailbox_id query parameter to filter by mailbox
  * Performance target: < 300ms for 200-300 tenants
  */
 router.get('/', async (req, res) => {
   try {
-    const result = await dbQuery(`
+    const { mailbox_id } = req.query;
+    
+    let queryText = `
       SELECT 
-        id,
-        mailbox_number,
-        name,
-        phone,
-        email,
-        active,
-        created_at
-      FROM tenants 
-      WHERE active = TRUE
-      ORDER BY CAST(mailbox_number AS INTEGER)
-    `);
+        t.id,
+        t.mailbox_id,
+        t.name,
+        t.phone,
+        t.email,
+        t.notes,
+        t.active,
+        t.created_at
+      FROM tenants t
+      WHERE t.active = TRUE
+    `;
+    
+    const queryParams = [];
+    
+    // Filter by mailbox_id if provided
+    if (mailbox_id) {
+      queryParams.push(parseInt(mailbox_id, 10));
+      queryText += ` AND t.mailbox_id = $${queryParams.length}`;
+    }
+    
+    queryText += ' ORDER BY t.name';
+    
+    const result = await dbQuery(queryText, queryParams);
 
     res.json({
       tenants: result.rows,
