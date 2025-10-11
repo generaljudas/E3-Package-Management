@@ -56,10 +56,10 @@ function Dashboard() {
     }
   };
 
-  // const clearSelection = () => {
-  //   setSelectedMailbox(null);
-  //   setSelectedTenant(null);
-  // };
+  const handleClearSelection = () => {
+    setSelectedMailbox(null);
+    setSelectedTenant(null);
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -79,6 +79,7 @@ function Dashboard() {
           onDefaultTenantUpdate={(success: boolean, message: string) => {
             showToast(success ? 'success' : 'error', message);
           }}
+          onClearSelection={handleClearSelection}
         />
 
         <div 

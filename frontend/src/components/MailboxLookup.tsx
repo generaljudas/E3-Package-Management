@@ -5,6 +5,7 @@ interface MailboxLookupProps {
   onMailboxSelect: (mailbox: Mailbox, defaultTenant?: Tenant) => void;
   onTenantChange?: (tenant: Tenant | null) => void;
   onDefaultTenantUpdate?: (success: boolean, message: string) => void;
+  onClearSelection?: () => void;
   placeholder?: string;
   disabled?: boolean;
   autoFocus?: boolean;
@@ -26,6 +27,7 @@ export default function MailboxLookup({
   onMailboxSelect,
   onTenantChange,
   onDefaultTenantUpdate,
+  onClearSelection,
   placeholder = "Type mailbox number (e.g., 145)",
   disabled = false,
   autoFocus = true,
@@ -154,6 +156,16 @@ export default function MailboxLookup({
     const newValue = e.target.value;
     setInputValue(newValue);
     setError(null);
+    
+    // If input is cleared, reset all state and notify parent
+    if (newValue.trim() === '') {
+      setSelectedMailbox(null);
+      setAvailableTenants([]);
+      setSelectedTenant(null);
+      setSearchResults([]);
+      setShowDropdown(false);
+      onClearSelection?.();
+    }
     
     // Notify parent of value change
     onValueChange?.(newValue);
