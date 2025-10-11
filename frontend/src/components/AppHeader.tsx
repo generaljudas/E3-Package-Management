@@ -9,7 +9,7 @@ export function AppHeader() {
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center py-3">
-          <div className="flex items-center gap-3" data-testid="app-header-branding">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }} data-testid="app-header-branding">
             <div 
               data-testid="app-logo"
               style={{
@@ -28,7 +28,7 @@ export function AppHeader() {
             >
               E3
             </div>
-            <div data-testid="app-header-title">
+            <div data-testid="app-header-title" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
               <h1 
                 data-testid="app-title"
                 style={{
@@ -36,7 +36,8 @@ export function AppHeader() {
                   fontWeight: '700',
                   color: 'white',
                   letterSpacing: '-0.025em',
-                  lineHeight: 1.2
+                  lineHeight: 1,
+                  margin: 0
                 }}
               >
                 Package Manager
@@ -46,7 +47,9 @@ export function AppHeader() {
                 style={{
                   fontSize: '0.75rem',
                   color: 'rgba(255, 255, 255, 0.75)',
-                  fontWeight: '500'
+                  fontWeight: '500',
+                  paddingLeft: '0.75rem',
+                  borderLeft: '1px solid rgba(255, 255, 255, 0.3)'
                 }}
               >
                 Staff Dashboard
