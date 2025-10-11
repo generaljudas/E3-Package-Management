@@ -355,7 +355,7 @@ export const PackagePickup: React.FC<PackagePickupProps> = ({
               </div>
             </div>
 
-            {/* Search Input and Select All */}
+            {/* Search Input and Select/Deselect All */}
             <div style={{ padding: '1.5rem 1.5rem 0', display: 'flex', gap: '0.75rem' }}>
               <input
                 ref={searchRef}
@@ -368,56 +368,51 @@ export const PackagePickup: React.FC<PackagePickupProps> = ({
                 data-testid="pickup-search-input"
                 style={{ flex: 1 }}
               />
-              <button
-                onClick={() => {
-                  const availablePackages = filteredPackages.filter(pkg => 
-                    ['received', 'ready_for_pickup'].includes(pkg.status)
+              {(() => {
+                const availablePackages = filteredPackages.filter(pkg => 
+                  ['received', 'ready_for_pickup'].includes(pkg.status)
+                );
+                const allSelected = availablePackages.length > 0 && 
+                  availablePackages.every(pkg => 
+                    workflow.selectedPackages.some(selected => selected.id === pkg.id)
                   );
-                  setWorkflow(prev => ({
-                    ...prev,
-                    selectedPackages: availablePackages
-                  }));
-                }}
-                disabled={filteredPackages.filter(pkg => ['received', 'ready_for_pickup'].includes(pkg.status)).length === 0}
-                className="btn btn-secondary"
-                data-testid="pickup-select-all-button"
-                style={{
-                  padding: '0.75rem 1.5rem',
-                  fontSize: '0.875rem',
-                  fontWeight: '600',
-                  whiteSpace: 'nowrap',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.5rem',
-                  opacity: filteredPackages.filter(pkg => ['received', 'ready_for_pickup'].includes(pkg.status)).length === 0 ? 0.5 : 1,
-                  cursor: filteredPackages.filter(pkg => ['received', 'ready_for_pickup'].includes(pkg.status)).length === 0 ? 'not-allowed' : 'pointer'
-                }}
-              >
-                <span>☑️</span> Select All
-              </button>
-              {workflow.selectedPackages.length > 0 && (
-                <button
-                  onClick={() => {
-                    setWorkflow(prev => ({
-                      ...prev,
-                      selectedPackages: []
-                    }));
-                  }}
-                  className="btn btn-secondary"
-                  data-testid="pickup-clear-all-button"
-                  style={{
-                    padding: '0.75rem 1.5rem',
-                    fontSize: '0.875rem',
-                    fontWeight: '600',
-                    whiteSpace: 'nowrap',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem'
-                  }}
-                >
-                  <span>✖️</span> Clear All
-                </button>
-              )}
+                
+                return (
+                  <button
+                    onClick={() => {
+                      if (allSelected) {
+                        // Deselect all
+                        setWorkflow(prev => ({
+                          ...prev,
+                          selectedPackages: []
+                        }));
+                      } else {
+                        // Select all available
+                        setWorkflow(prev => ({
+                          ...prev,
+                          selectedPackages: availablePackages
+                        }));
+                      }
+                    }}
+                    disabled={availablePackages.length === 0}
+                    className="btn btn-secondary"
+                    data-testid="pickup-select-all-button"
+                    style={{
+                      padding: '0.75rem 1.5rem',
+                      fontSize: '0.875rem',
+                      fontWeight: '600',
+                      whiteSpace: 'nowrap',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                      opacity: availablePackages.length === 0 ? 0.5 : 1,
+                      cursor: availablePackages.length === 0 ? 'not-allowed' : 'pointer'
+                    }}
+                  >
+                    <span>{allSelected ? '✖️' : '☑️'}</span> {allSelected ? 'Deselect All' : 'Select All'}
+                  </button>
+                );
+              })()}
             </div>
 
             {/* Package List */}
