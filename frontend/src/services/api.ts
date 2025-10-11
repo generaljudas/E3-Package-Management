@@ -34,7 +34,7 @@ async function apiRequest<T>(
     
     // Log slow requests (> 300ms)
     if (duration > 300) {
-      console.warn(`⚠️ Slow API request (${Math.round(duration)}ms): ${endpoint}`);
+  console.warn(`Slow API request (${Math.round(duration)}ms): ${endpoint}`);
     }
 
     if (!response.ok) {

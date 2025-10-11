@@ -13,7 +13,6 @@ export interface SignatureData {
 
 interface SignaturePadProps {
   onSignatureChange?: (signature: SignatureData | null) => void;
-  onSignatureComplete?: (signature: SignatureData) => void;
   width?: number;
   height?: number;
   strokeWidth?: number;
@@ -26,7 +25,6 @@ interface SignaturePadProps {
 
 export const SignaturePad: React.FC<SignaturePadProps> = ({
   onSignatureChange,
-  onSignatureComplete,
   width = 400,
   height = 200,
   strokeWidth = 2,
@@ -41,21 +39,14 @@ export const SignaturePad: React.FC<SignaturePadProps> = ({
   const [isEmpty, setIsEmpty] = useState(true);
   const [lastPosition, setLastPosition] = useState<{ x: number; y: number } | null>(null);
 
-  // Initialize canvas
+  // Initialize/clear canvas background when size or background changes (and on mount).
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // Set up canvas properties
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    ctx.strokeStyle = strokeColor;
-    ctx.lineWidth = strokeWidth;
-
-    // Clear canvas with background color
+    // Clear canvas with background color (changing width/height will reset the bitmap as well)
     ctx.fillStyle = backgroundColor;
     ctx.fillRect(0, 0, width, height);
 
@@ -63,7 +54,19 @@ export const SignaturePad: React.FC<SignaturePadProps> = ({
       setIsEmpty(true);
       onSignatureChange?.(null);
     }
-  }, [width, height, strokeWidth, strokeColor, backgroundColor, clearOnStart, onSignatureChange]);
+  }, [width, height, backgroundColor, clearOnStart]);
+
+  // Update stroke style without clearing existing drawing when pen style changes.
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.strokeStyle = strokeColor;
+    ctx.lineWidth = strokeWidth;
+  }, [strokeColor, strokeWidth]);
 
   const getSignatureData = useCallback((): SignatureData | null => {
     const canvas = canvasRef.current;
@@ -141,13 +144,9 @@ export const SignaturePad: React.FC<SignaturePadProps> = ({
     ctx.stroke();
 
     setLastPosition(currentPosition);
-    
+    // Mark canvas as non-empty on first stroke segment
     if (isEmpty) {
       setIsEmpty(false);
-      const signatureData = getSignatureData();
-      if (signatureData) {
-        onSignatureChange?.(signatureData);
-      }
     }
   };
 
@@ -157,18 +156,19 @@ export const SignaturePad: React.FC<SignaturePadProps> = ({
     e.preventDefault();
     setIsDrawing(false);
     setLastPosition(null);
-
+    // Don't auto-complete when the pointer is released; allow multiple strokes.
+    // Instead, notify parent that the signature content changed so they can enable a manual confirm.
     if (!isEmpty) {
       const signatureData = getSignatureData();
       if (signatureData) {
-        onSignatureComplete?.(signatureData);
+        onSignatureChange?.(signatureData);
       }
     }
   };
 
   return (
-    <div className={`signature-pad-container ${className}`}>
-      <div className="relative bg-white border-2 border-gray-300 rounded-lg overflow-hidden">
+    <div className={`signature-pad-container ${className}`} data-testid="signature-pad-root">
+      <div className="relative bg-white border-2 border-gray-300 rounded-lg overflow-hidden" data-testid="signature-pad-container">
         <canvas
           ref={canvasRef}
           width={width}
@@ -187,28 +187,29 @@ export const SignaturePad: React.FC<SignaturePadProps> = ({
             maxWidth: `${width}px`,
             touchAction: 'none' // Prevent scrolling while drawing
           }}
+          data-testid="signature-pad-canvas"
         />
         
         {isEmpty && !disabled && (
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none" data-testid="signature-pad-placeholder">
             <div className="text-gray-400 text-center">
-              <div className="text-2xl mb-2">✍️</div>
-              <p className="text-sm">Sign here</p>
+                <div className="text-2xl mb-2" data-testid="signature-pad-placeholder-icon">✍️</div>
+              <p className="text-sm" data-testid="signature-pad-placeholder-text">Sign here</p>
             </div>
           </div>
         )}
 
         {disabled && (
-          <div className="absolute inset-0 bg-gray-100 bg-opacity-50 flex items-center justify-center">
-            <div className="text-gray-500 text-sm">
+          <div className="absolute inset-0 bg-gray-100 bg-opacity-50 flex items-center justify-center" data-testid="signature-pad-disabled">
+            <div className="text-gray-500 text-sm" data-testid="signature-pad-disabled-text">
               Signature disabled
             </div>
           </div>
         )}
       </div>
 
-      <div className="flex items-center justify-between mt-3">
-        <div className="text-xs text-gray-500">
+      <div className="flex items-center justify-between mt-3" data-testid="signature-pad-controls">
+        <div className="text-xs text-gray-500" data-testid="signature-pad-status">
           {isEmpty ? 'No signature' : 'Signature captured'}
         </div>
         
@@ -217,6 +218,7 @@ export const SignaturePad: React.FC<SignaturePadProps> = ({
           onClick={clearSignature}
           disabled={isEmpty || disabled}
           className="text-sm text-red-600 hover:text-red-800 disabled:text-gray-400 disabled:cursor-not-allowed"
+          data-testid="signature-pad-clear"
         >
           Clear Signature
         </button>
@@ -244,43 +246,46 @@ export const SignatureVerification: React.FC<SignatureVerificationProps> = ({
   className = '',
 }) => {
   return (
-    <div className={`bg-blue-50 border border-blue-200 rounded-lg p-4 ${className}`}>
-      <h4 className="text-lg font-medium text-blue-900 mb-3">
+    <div className={`bg-blue-50 border border-blue-200 rounded-lg p-4 ${className}`} data-testid="signature-verification-root">
+      <h4 className="text-lg font-medium text-blue-900 mb-3" data-testid="signature-verification-title">
         Verify Signature
       </h4>
       
-      <div className="space-y-4">
-        <div>
-          <p className="text-sm text-blue-700 mb-2">
+      <div className="space-y-4" data-testid="signature-verification-content">
+        <div data-testid="signature-verification-details">
+          <p className="text-sm text-blue-700 mb-2" data-testid="signature-verification-recipient">
             <strong>Recipient:</strong> {recipientName}
           </p>
-          <p className="text-sm text-blue-700 mb-2">
+          <p className="text-sm text-blue-700 mb-2" data-testid="signature-verification-timestamp">
             <strong>Signed at:</strong> {signature.timestamp.toLocaleString()}
           </p>
         </div>
 
-        <div className="bg-white p-3 rounded border">
-          <p className="text-sm font-medium text-gray-700 mb-2">Captured Signature:</p>
+        <div className="bg-white p-3 rounded border" data-testid="signature-verification-preview">
+          <p className="text-sm font-medium text-gray-700 mb-2" data-testid="signature-verification-preview-label">Captured Signature:</p>
           <img 
             src={signature.dataURL} 
             alt="Captured signature"
             className="border border-gray-200 rounded max-w-full h-auto"
             style={{ maxHeight: '120px' }}
+            data-testid="signature-verification-image"
           />
         </div>
 
-        <div className="flex space-x-3">
+        <div className="flex space-x-3" data-testid="signature-verification-actions">
           <button
             onClick={onConfirm}
             className="flex-1 btn btn-primary"
+            data-testid="signature-verification-confirm"
           >
-            ✓ Confirm Pickup
+            Confirm Pickup
           </button>
           <button
             onClick={onRetry}
             className="btn bg-gray-200 text-gray-700 hover:bg-gray-300"
+            data-testid="signature-verification-retry"
           >
-            ↺ Sign Again
+            Sign Again
           </button>
         </div>
       </div>

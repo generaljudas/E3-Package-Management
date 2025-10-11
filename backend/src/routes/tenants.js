@@ -382,4 +382,101 @@ router.patch('/mailboxes/:mailboxId/default-tenant', [
   }
 });
 
+/**
+ * PATCH /api/tenants/mailboxes/by-number/:mailboxNumber/default-tenant
+ * Update the default tenant for a mailbox by mailbox_number
+ * In development, will create the mailbox if it doesn't exist to support mocked data
+ */
+router.patch('/mailboxes/by-number/:mailboxNumber/default-tenant', [
+  param('mailboxNumber').isLength({ min: 1 }).withMessage('Mailbox number is required'),
+  body('default_tenant_id').isInt().withMessage('Default tenant ID must be an integer'),
+  body('tenant_name').optional().isLength({ min: 1, max: 255 }).withMessage('Tenant name must be 1-255 characters'),
+  handleValidationErrors,
+], async (req, res) => {
+  try {
+    const { mailboxNumber } = req.params;
+    const { default_tenant_id, tenant_name } = req.body;
+
+    // Ensure tenant exists and is active
+    const tenantResult = await dbQuery(
+      'SELECT id, name, mailbox_id, mailbox_number, active FROM tenants WHERE id = $1',
+      [parseInt(default_tenant_id)]
+    );
+
+    let effectiveTenantId = parseInt(default_tenant_id);
+    let effectiveTenantName = tenantResult.rows[0]?.name;
+    if (tenantResult.rows.length === 0 || tenantResult.rows[0].active === false) {
+      // In development: create the tenant if missing
+      if ((process.env.NODE_ENV || 'development') !== 'production') {
+        // Find or create mailbox first
+        let mailboxResult = await dbQuery(
+          'SELECT id, mailbox_number FROM mailboxes WHERE mailbox_number = $1',
+          [mailboxNumber]
+        );
+        if (mailboxResult.rows.length === 0) {
+          const createMailbox = await dbQuery(
+            `INSERT INTO mailboxes (mailbox_number, active) VALUES ($1, TRUE) RETURNING id, mailbox_number`,
+            [mailboxNumber]
+          );
+          mailboxResult = createMailbox;
+        }
+        const mb = mailboxResult.rows[0];
+        const nameToUse = tenant_name && tenant_name.trim().length > 0 ? tenant_name.trim() : `Default Tenant ${mailboxNumber}`;
+        const createTenant = await dbQuery(
+          `INSERT INTO tenants (mailbox_id, name, phone, email, active, mailbox_number)
+           VALUES ($1, $2, NULL, NULL, TRUE, $3)
+           RETURNING id, name`,
+          [mb.id, nameToUse, mailboxNumber]
+        );
+        effectiveTenantId = createTenant.rows[0].id;
+        effectiveTenantName = createTenant.rows[0].name;
+      } else {
+        return res.status(404).json({ error: 'Tenant not found or inactive' });
+      }
+    }
+
+    // Find mailbox by number
+    let mailboxResult = await dbQuery(
+      'SELECT id, mailbox_number, default_tenant_id FROM mailboxes WHERE mailbox_number = $1',
+      [mailboxNumber]
+    );
+
+    // In development, create mailbox if missing to support mocked data
+    if (mailboxResult.rows.length === 0) {
+      if ((process.env.NODE_ENV || 'development') !== 'production') {
+        const createResult = await dbQuery(`
+          INSERT INTO mailboxes (mailbox_number, active)
+          VALUES ($1, TRUE)
+          RETURNING id, mailbox_number, default_tenant_id
+        `, [mailboxNumber]);
+        mailboxResult = createResult;
+      } else {
+        return res.status(404).json({ error: 'Mailbox not found' });
+      }
+    }
+
+  const mailbox = mailboxResult.rows[0];
+
+    // Update default tenant
+    const updateResult = await dbQuery(`
+      UPDATE mailboxes 
+      SET default_tenant_id = $2, updated_at = CURRENT_TIMESTAMP
+      WHERE id = $1
+      RETURNING id, mailbox_number, default_tenant_id, updated_at
+  `, [mailbox.id, effectiveTenantId]);
+
+    return res.json({
+      message: 'Default tenant updated successfully',
+      mailbox: updateResult.rows[0],
+      tenant: {
+        id: effectiveTenantId,
+        name: effectiveTenantName,
+      },
+    });
+  } catch (err) {
+    console.error('Error updating default tenant by number:', err);
+    res.status(500).json({ error: 'Failed to update default tenant' });
+  }
+});
+
 export default router;

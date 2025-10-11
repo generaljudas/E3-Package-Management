@@ -1,7 +1,7 @@
 # E3 Package Manager - Complete System Documentation
 
 **Version:** 1.0.0  
-**Last Updated:** October 9, 2025  
+**Last Updated:** October 10, 2025  
 **Platform:** macOS (Apple Silicon)
 
 ---
@@ -102,10 +102,10 @@ Pickup Event (Tracks package pickups with signatures)
 - **Framework**: React 19.1.1
 - **Build Tool**: Vite 7.1.9
 - **Language**: TypeScript
-- **Styling**: Custom CSS (TailwindCSS v4 removed due to config issues)
+- **Styling**: TailwindCSS v4 (via @tailwindcss/postcss) + small custom CSS
 - **PWA**: vite-plugin-pwa with Workbox
 - **Barcode Scanning**: QuaggaJS
-- **Routing**: React Router v6
+- **Routing**: React Router v7
 
 ### Backend
 - **Runtime**: Node.js (ES Modules)
@@ -248,8 +248,8 @@ CREATE INDEX idx_signatures_pickup_event_id ON signatures(pickup_event_id);
 - Stores signature as base64 encoded data or blob URL
 - Can be linked to individual package or bulk pickup event
 
-#### 5. `pickup_events` (Referenced but not in current schema)
-Tracks bulk pickup operations for audit trail.
+#### 5. `pickup_events` (Optional/legacy – may not exist)
+Tracks per-package pickup events for audit trail. The backend supports a graceful fallback when this table is absent by updating `packages` directly and recording signatures on each package.
 
 ```sql
 -- Note: This table is referenced in code but may need to be created
@@ -370,7 +370,21 @@ PATCH /api/tenants/mailboxes/{mailboxId}/default-tenant
 **Body:**
 ```json
 {
-  "tenant_id": 2
+   "default_tenant_id": 2
+}
+```
+
+Alternate (by mailbox number):
+```http
+PATCH /api/tenants/mailboxes/by-number/{mailboxNumber}/default-tenant
+```
+Use this when only the mailbox number is available. In development, this endpoint will create the mailbox (if missing) and, if the tenant ID doesn’t exist, can also create the tenant when you include an optional `tenant_name`.
+
+Optional body for dev convenience:
+```json
+{
+   "default_tenant_id": 2,
+   "tenant_name": "Alice Cooper"
 }
 ```
 
@@ -479,6 +493,10 @@ POST /api/pickups
 }
 ```
 
+Notes:
+- If the optional `pickup_events` table is present, one event is recorded per package and a single `signature_id` may be returned when a signature is captured.
+- If `pickup_events` does not exist, the server skips event creation, updates `packages` directly, and stores signatures linked to each package; in that mode the response includes `signature_ids: number[]` instead of a single `signature_id`.
+
 **Offline-queued (client payload stored locally):**
 ```json
 {
@@ -546,6 +564,7 @@ frontend/
 │   │   ├── BarcodeScanner.tsx     # QuaggaJS wrapper
 │   │   ├── SignaturePad.tsx       # Canvas-based signature capture
 │   │   └── OfflineStatusBar.tsx   # Online/offline indicator
+│   │   └── TestIdOverlay.tsx      # Dev-only overlay to visualize data-testids
 │   ├── hooks/
 │   │   ├── useOffline.ts          # Offline state management
 │   │   └── useFocus.ts            # Keyboard navigation
@@ -886,11 +905,11 @@ VITE_API_URL=http://localhost:3001/api  # Backend API base URL
    ↓
 10. Frontend sends POST /api/pickups
     ↓
-11. Backend creates pickup_event record
-    ↓
+11. Backend attempts to create `pickup_event` records (if table exists); otherwise this step is skipped
+   ↓
 12. Backend updates all package statuses to 'picked_up'
-    ↓
-13. Backend stores signature(s) linked to pickup_event
+   ↓
+13. Backend stores signature(s) linked to either the pickup event (when present) or directly to each package
     ↓
 14. Success notification shows package count
 ```
@@ -1096,6 +1115,11 @@ WHERE m.id IS NULL;  -- Should return 0 rows
 **Cause:** API response structure mismatch in toast notification  
 **Solution:** App.tsx now checks for `packageData.package?.tracking_number`
 
+#### Issue: Frontend production build fails (TypeScript)
+**Cause:** Type definitions drift in `TenantLookup.tsx` and `services/api.ts` (e.g., NodeJS.Timeout typing, missing exported types such as `TenantSearchResponse`, `PickupEvent`)  
+**Status:** Development server works; production build currently fails  
+**Workaround:** Develop using `npm run dev`. Fix typings before running `npm run build` for production.
+
 #### Issue: Error 500 on package creation
 **Cause:** Missing `mailbox_id` in INSERT statement  
 **Solution:** Backend now retrieves mailbox_id from tenant before insert
@@ -1209,10 +1233,10 @@ server {
 
 ## Known Issues & Workarounds
 
-### 1. TailwindCSS v4 Compatibility
-**Issue:** TailwindCSS v4 configuration conflicts with Vite  
-**Status:** Removed TailwindCSS, using custom CSS  
-**Workaround:** Custom CSS provides adequate styling
+### 1. TailwindCSS v4 configuration
+**Issue:** Tailwind v4 requires the @tailwindcss/postcss plugin and updated config shape  
+**Status:** TailwindCSS v4 is installed and active; PostCSS is configured  
+**Workaround:** Ensure `@tailwindcss/postcss` is in devDependencies and referenced in `postcss.config.js`.
 
 ### 2. QuaggaJS Camera Permissions
 **Issue:** Camera access requires HTTPS in production  
@@ -1233,6 +1257,11 @@ server {
 **Issue:** Tenants have both mailbox_id and mailbox_number  
 **Status:** mailbox_number added for API compatibility  
 **Note:** mailbox_id is the source of truth; mailbox_number is for display
+
+### 6. Frontend TypeScript build failures
+**Issue:** `npm run build` in `frontend/` currently fails due to TypeScript errors (unrelated to runtime)  
+**Status:** Known; fixes planned for `TenantLookup.tsx` and `services/api.ts` typings  
+**Workaround:** Use the Vite dev server (`npm run dev`) for daily usage until typings are corrected.
 
 ---
 
@@ -1380,6 +1409,14 @@ ps aux | grep node
 
 ## Version History
 
+### v1.0.1 (October 10, 2025)
+- Pickup processing aligned with current schema; supports optional `pickup_events` with graceful fallback
+- Success toast after confirming pickup
+- Reports: fixed daily trends parameter binding and top mailboxes grouping
+- UI: compact selection bar cleanup above action buttons
+- Testing & DX: Added dev-only Test ID overlay and expanded data-testid coverage across Intake, Tools, OfflineStatusBar, and Reports
+- Documentation: Updated UI Element Identification Guide and clarified pickup workflow
+
 ### v1.0.0 (October 6, 2025)
 - Initial production release
 - Mailbox-first architecture implemented
@@ -1436,6 +1473,124 @@ git push origin feature/your-feature-name
 
 ---
 
-**End of Documentation**
+## UI Element Identification Guide
 
-*For questions or issues, refer to the relevant section above or check the backend logs for detailed error messages.*
+This app uses stable data-testid attributes and accessible names to identify UI elements unambiguously across the UI and in tests. Use these steps and IDs to avoid misunderstandings.
+
+### Preferred identification methods
+- data-testid: zero-ambiguity selectors for collaboration and tests
+  - Example (CSS): [data-testid="pickup-proceed"]
+  - Example (Testing Library): screen.getByTestId('pickup-proceed')
+- Accessible name + role: aligns with a11y and user-visible labels
+  - Example (Testing Library): screen.getByRole('button', { name: /confirm signature/i })
+
+### Safari Web Inspector: how to find an element’s identifier
+1. Enable Develop menu if hidden: Safari → Settings → Advanced → Show features for web developers (or Show Develop menu)
+2. Right–click the element → Inspect Element
+3. In Elements panel, inspect attributes on the node:
+   - data-testid="…" (our canonical selector)
+   - aria-label / aria-labelledby (accessible naming)
+4. Optional Console helpers (with the node selected):
+   - $0.getAttribute('data-testid')
+   - $0.getAttribute('aria-label')
+   - $0.textContent?.trim()
+
+### Key data-testids (Catalog)
+
+MailboxLookup (selection bar)
+- mailbox-lookup-root — component root
+- mailbox-lookup-input — the mailbox/tenant search input
+- mailbox-lookup-dropdown — dropdown container
+- mailbox-lookup-option-<mailboxId> — each dropdown option
+
+PackagePickup (pickup workflow)
+- pickup-root — component root
+- pickup-offline-warning — offline message (when offline)
+- pickup-step-list — list step container
+- pickup-status-filter — filter button group
+- pickup-filter-all | pickup-filter-available | pickup-filter-picked_up — status filters
+- pickup-search-input — search input
+- pickup-table-container — table wrapper
+- pickup-table — table element
+- pickup-col-tracking | pickup-col-status | pickup-col-carrier | pickup-col-size | pickup-col-received | pickup-col-pickup-date — column headers
+- pickup-no-packages — empty-state message
+- pickup-row-<packageId> — table row for a package
+- pickup-select-<packageId> — row checkbox
+- pickup-selection-summary — selected packages summary
+- pickup-proceed — proceed to pickup button
+- pickup-step-verify — verify step container
+- pickup-person-input — pickup person name input
+- pickup-verify-list — verify list of packages
+- pickup-continue-signature — continue to signature button
+- pickup-back-to-list — back to list button
+- pickup-step-signature — signature step container
+- pickup-signature-pad — signature canvas container
+- pickup-confirm-signature — confirm signature button
+- pickup-back-to-verify — back to verify button
+- pickup-verification — final confirmation/signature verification container
+
+PackageIntake (intake workflow)
+- intake-root — component root
+- intake-offline-warning — offline message (when offline)
+- intake-scanner-section — barcode scanner wrapper
+- intake-scanner-toggle — toggle for scanner on/off
+- intake-tracking-input — tracking number input
+- intake-add-to-batch — add current tracking to batch button
+- intake-batch-list — list of batched tracking numbers
+- intake-batch-item-<tracking> — individual batch list item
+- intake-clear-form — clear/reset form button
+- intake-submit — submit/register batch button
+
+Tools
+- tools-root — component root
+- tools-header — header container
+- tools-tabs — tabs container
+- tools-tab-<id> — tab button elements
+- tools-content — active tab content wrapper
+
+OfflineStatusBar
+- offline-status-root — component root
+- offline-status-banner — offline banner when disconnected
+- offline-queued-count — count of queued operations
+- offline-syncing-banner — syncing status banner
+- offline-notifications — notification list wrapper
+- offline-notification-<id> — individual notification item
+
+Reports
+- reports-root — component root
+- reports-header — header container
+- reports-date-range — date range wrapper
+- reports-date-from — start date input
+- reports-date-to — end date input
+- reports-tabs — tabs container
+- reports-tablist — tablist role container
+- reports-tab-<id> — tab button
+- reports-content — active tab content wrapper
+- reports-statistics-loading | reports-statistics-empty | reports-statistics — statistics tab states
+- reports-overview-cards — overview metrics cards
+- reports-carriers — carriers distribution
+- reports-top-mailboxes — top mailboxes list
+- reports-daily-trends — daily trends chart/list
+- reports-pickups-loading | reports-pickups-empty | reports-pickups — pickups tab states
+- reports-pickups-summary — summary header
+- reports-pickups-list — list of pickup events
+- reports-pickups-pagination — pagination controls
+- reports-audit-loading | reports-audit-empty | reports-audit — audit tab states
+- reports-audit-filters — filter controls
+- reports-audit-list — audit entries list
+- reports-audit-pagination — pagination controls
+
+Dev overlay (TestIdOverlay)
+- Toggle is visible in development builds at the bottom-left of the app. Click to enable/disable showing the nearest ancestor data-testid on hover. The setting persists via localStorage between reloads.
+
+### How to specify changes unambiguously
+- Reference the exact data-testid in requests:
+  - “Make [data-testid='mailbox-summary-number'] bold.”
+  - “Hide [data-testid='mailbox-summary-tenant-phone'] on mobile.”
+  - “Change [data-testid='pickup-proceed'] label to ‘Continue’.”
+- Or specify role + accessible name for a11y-driven tasks:
+  - “Increase padding on the button with name ‘Confirm Signature’.”
+
+If you can’t see these attributes in Safari, hard-refresh the page to pull the latest frontend build.
+
+...existing code...

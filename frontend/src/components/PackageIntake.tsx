@@ -192,92 +192,212 @@ export const PackageIntake: React.FC<PackageIntakeProps> = ({
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <h3 className="text-lg font-semibold text-blue-900 mb-2">📥 Package Intake</h3>
-        <div className="text-sm text-blue-700">
-          <p>
-            <strong>Mailbox:</strong> {selectedMailbox.mailbox_number}
-            {selectedTenant && (
-              <span className="ml-4">
-                <strong>Tenant:</strong> {selectedTenant.name}
-              </span>
-            )}
-          </p>
-          {!isOnline && (
-            <div className="mt-2 flex items-center text-orange-600">
-              <div className="w-2 h-2 bg-orange-500 rounded-full mr-2"></div>
-              Working offline - package will be synced when connection returns
+    <div className="space-y-6" data-testid="intake-root">
+      {/* Barcode Scanner Section */}
+      <div 
+        style={{
+          background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
+          borderRadius: 'var(--radius-lg)',
+          border: '2px solid #e2e8f0',
+          boxShadow: 'var(--shadow-md)',
+        }}
+        data-testid="intake-scanner-section"
+      >
+        {/* Section Header */}
+        <div 
+          style={{
+            background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+            padding: '1rem 1.5rem',
+            borderTopLeftRadius: 'var(--radius-lg)',
+            borderTopRightRadius: 'var(--radius-lg)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            boxShadow: 'var(--shadow-sm)',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <span style={{ fontSize: '1.5rem' }}>📦</span>
+            <h4 style={{ 
+              fontSize: '1.125rem', 
+              fontWeight: '600', 
+              color: 'white',
+              margin: 0
+            }}>
+              Scan Package Barcode
+            </h4>
+          </div>
+          <button
+            onClick={() => setIsScannerActive(!isScannerActive)}
+            className="btn"
+            style={{
+              background: isScannerActive 
+                ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)' 
+                : 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+              color: 'white',
+              padding: '0.5rem 1.25rem',
+              fontSize: '0.875rem',
+              fontWeight: '600',
+            }}
+            data-testid="intake-scanner-toggle"
+          >
+            {isScannerActive ? '⏹ Stop Scanner' : '▶ Start Scanner'}
+          </button>
+        </div>
+
+        {/* Scanner Content */}
+        <div style={{ padding: '1.5rem' }}>
+          <BarcodeScanner
+            isActive={isScannerActive}
+            onScan={handleBarcodeScan}
+            onError={(error) => onError?.(error)}
+            className="mb-4"
+          />
+          
+          {/* Tracking Number Input */}
+          <div style={{ marginTop: '1.5rem', display: 'flex', gap: '0.75rem' }}>
+            <input
+              ref={trackingNumberRef}
+              id="tracking_number"
+              type="text"
+              value={formData.tracking_number}
+              onChange={(e) => handleInputChange(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Scan or type tracking number"
+              className="input-field"
+              style={{ flex: '1' }}
+              autoComplete="off"
+              tabIndex={1}
+              data-testid="intake-tracking-input"
+            />
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={addToBatch}
+              disabled={!formData.tracking_number.trim() || batch.includes(formData.tracking_number.trim())}
+              data-testid="intake-add-to-batch"
+              style={{
+                padding: '0.75rem 1.5rem',
+                fontSize: '0.875rem',
+                fontWeight: '600',
+              }}
+            >
+              ➕ Add
+            </button>
+          </div>
+          
+          <div style={{ 
+            marginTop: '0.75rem', 
+            fontSize: '0.875rem', 
+            color: 'var(--color-gray-600)',
+            fontStyle: 'italic'
+          }}>
+            💡 Scan or enter each package, then click Add or scan next
+          </div>
+
+          {/* Batch List */}
+          {batch.length > 0 && (
+            <div 
+              style={{ marginTop: '1.5rem' }} 
+              data-testid="intake-batch-list"
+            >
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                marginBottom: '0.75rem'
+              }}>
+                <span style={{ fontSize: '1.25rem' }}>📋</span>
+                <h5 style={{ 
+                  fontWeight: '600', 
+                  color: 'var(--color-gray-900)',
+                  fontSize: '1rem',
+                  margin: 0
+                }}>
+                  Batch to Register ({batch.length})
+                </h5>
+              </div>
+              <ul 
+                style={{
+                  background: 'white',
+                  borderRadius: 'var(--radius-md)',
+                  border: '2px solid #cbd5e1',
+                  overflow: 'hidden',
+                  boxShadow: 'var(--shadow-sm)',
+                }}
+              >
+                {batch.map((trackingNumber, index) => (
+                  <li 
+                    key={trackingNumber} 
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: '0.875rem 1.25rem',
+                      borderBottom: index < batch.length - 1 ? '1px solid #e2e8f0' : 'none',
+                      background: index % 2 === 0 ? 'white' : '#f8fafc',
+                      transition: 'background 0.2s ease',
+                    }}
+                    data-testid={`intake-batch-item-${trackingNumber}`}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                      <span style={{ 
+                        background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+                        color: 'white',
+                        padding: '0.25rem 0.5rem',
+                        borderRadius: 'var(--radius-sm)',
+                        fontSize: '0.75rem',
+                        fontWeight: '600',
+                      }}>
+                        {index + 1}
+                      </span>
+                      <span style={{ 
+                        fontFamily: 'var(--font-mono)',
+                        fontSize: '0.875rem',
+                        fontWeight: '500',
+                        color: 'var(--color-gray-900)'
+                      }}>
+                        {trackingNumber}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      style={{
+                        color: '#ef4444',
+                        fontSize: '0.875rem',
+                        fontWeight: '500',
+                        padding: '0.25rem 0.5rem',
+                        borderRadius: 'var(--radius-sm)',
+                        transition: 'all 0.2s ease',
+                        cursor: 'pointer',
+                        border: 'none',
+                        background: 'transparent',
+                      }}
+                      onClick={() => removeFromBatch(trackingNumber)}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.background = '#fee2e2';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.background = 'transparent';
+                      }}
+                    >
+                      🗑 Remove
+                    </button>
+                  </li>
+                ))}
+              </ul>
             </div>
           )}
         </div>
       </div>
 
-      {/* Barcode Scanner Section */}
-      <div className="bg-white border border-gray-200 rounded-lg p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h4 className="text-lg font-medium text-gray-900">1. Scan Package Barcode</h4>
-          <button
-            onClick={() => setIsScannerActive(!isScannerActive)}
-            className={`btn ${isScannerActive ? 'bg-red-600 hover:bg-red-700 text-white' : 'btn-primary'}`}
-          >
-            {isScannerActive ? 'Stop Scanner' : 'Start Scanner'}
-          </button>
-        </div>
-        <BarcodeScanner
-          isActive={isScannerActive}
-          onScan={handleBarcodeScan}
-          onError={(error) => onError?.(error)}
-          className="mb-4"
-        />
-        <div className="mt-4 flex space-x-2">
-          <input
-            ref={trackingNumberRef}
-            id="tracking_number"
-            type="text"
-            value={formData.tracking_number}
-            onChange={(e) => handleInputChange(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Scan or type tracking number"
-            className="input-field flex-1"
-            autoComplete="off"
-            tabIndex={1}
-          />
-          <button
-            type="button"
-            className="btn btn-secondary"
-            onClick={addToBatch}
-            disabled={!formData.tracking_number.trim() || batch.includes(formData.tracking_number.trim())}
-          >
-            Add
-          </button>
-        </div>
-        <div className="mt-2 text-xs text-gray-500">Scan or enter each package, then click Add or scan next.</div>
-        {/* Batch List */}
-        {batch.length > 0 && (
-          <div className="mt-6">
-            <h5 className="font-semibold text-gray-800 mb-2">Batch to Register:</h5>
-            <ul className="divide-y divide-gray-200 bg-gray-50 rounded border border-gray-200">
-              {batch.map(trackingNumber => (
-                <li key={trackingNumber} className="flex items-center justify-between px-4 py-2">
-                  <span className="font-mono">{trackingNumber}</span>
-                  <button
-                    type="button"
-                    className="text-red-600 hover:underline text-xs ml-2"
-                    onClick={() => removeFromBatch(trackingNumber)}
-                  >
-                    Remove
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-      </div>
-
-      {/* Submit Button */}
-      <div className="flex justify-end space-x-4">
+      {/* Action Buttons */}
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'flex-end', 
+        gap: '0.75rem',
+        paddingTop: '0.5rem'
+      }}>
         <button
           onClick={() => {
             setFormData({ tracking_number: '' });
@@ -285,25 +405,40 @@ export const PackageIntake: React.FC<PackageIntakeProps> = ({
           }}
           className="btn btn-secondary"
           disabled={isSubmitting}
+          data-testid="intake-clear-form"
+          style={{
+            padding: '0.75rem 1.5rem',
+            fontSize: '0.875rem',
+            fontWeight: '600',
+          }}
         >
-          Clear Form
+          🗑 Clear Form
         </button>
         <button
           ref={submitButtonRef}
           onClick={handleSubmit}
           disabled={isSubmitting || (batch.length === 0 && !formData.tracking_number.trim())}
-          className="btn btn-primary flex items-center"
+          className="btn btn-primary"
           tabIndex={4}
+          data-testid="intake-submit"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            padding: '0.75rem 2rem',
+            fontSize: '0.875rem',
+            fontWeight: '600',
+          }}
         >
           {isSubmitting ? (
             <>
-              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
               {isOnline ? 'Registering...' : 'Queueing...'}
             </>
           ) : (
             <>
-              {batch.length > 0 ? `✓ Register Batch (${batch.length})` : '✓ Register Package'}
-              {!isOnline && <span className="ml-2 text-xs">(Offline)</span>}
+              ✓ {batch.length > 0 ? `Register Batch (${batch.length})` : 'Register Package'}
+              {!isOnline && <span style={{ fontSize: '0.75rem', opacity: 0.8 }}>(Offline)</span>}
             </>
           )}
         </button>

@@ -57,15 +57,15 @@ function StatisticsDashboard({
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-8">
-        <div className="text-blue-600">📊 Loading statistics...</div>
+      <div className="flex items-center justify-center py-8" data-testid="reports-statistics-loading">
+        <div className="text-blue-600">Loading statistics...</div>
       </div>
     );
   }
 
   if (!data) {
     return (
-      <div className="text-center py-8 text-gray-500">
+      <div className="text-center py-8 text-gray-500" data-testid="reports-statistics-empty">
         No statistics available
       </div>
     );
@@ -74,9 +74,9 @@ function StatisticsDashboard({
   const { statistics } = data;
 
   return (
-    <div className="space-y-6">
+  <div className="space-y-6" data-testid="reports-statistics">
       {/* Overview Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+  <div className="grid grid-cols-2 md:grid-cols-4 gap-4" data-testid="reports-overview-cards">
         <div className="bg-white rounded-lg border border-gray-200 p-4">
           <div className="text-2xl font-bold text-blue-600">
             {statistics.overview.total_packages}
@@ -104,8 +104,8 @@ function StatisticsDashboard({
       </div>
 
       {/* Carrier Distribution */}
-      <div className="bg-white rounded-lg border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold mb-4">📦 Carrier Distribution</h3>
+  <div className="bg-white rounded-lg border border-gray-200 p-6" data-testid="reports-carriers">
+  <h3 className="text-lg font-semibold mb-4">Carrier Distribution</h3>
         <div className="space-y-3">
           {statistics.carriers.map((carrier, index) => (
             <div key={index} className="flex items-center justify-between">
@@ -134,8 +134,8 @@ function StatisticsDashboard({
 
       {/* Top Mailboxes */}
       {statistics.top_mailboxes.length > 0 && (
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold mb-4">🏆 Most Active Mailboxes</h3>
+  <div className="bg-white rounded-lg border border-gray-200 p-6" data-testid="reports-top-mailboxes">
+          <h3 className="text-lg font-semibold mb-4">Most Active Mailboxes</h3>
           <div className="space-y-2">
             {statistics.top_mailboxes.slice(0, 5).map((mailbox, index) => (
               <div key={index} className="flex items-center justify-between p-3 hover:bg-gray-50 rounded">
@@ -159,8 +159,8 @@ function StatisticsDashboard({
 
       {/* Daily Trends */}
       {statistics.daily_trends.length > 0 && (
-        <div className="bg-white rounded-lg border border-gray-200 p-6">
-          <h3 className="text-lg font-semibold mb-4">📈 Daily Activity</h3>
+  <div className="bg-white rounded-lg border border-gray-200 p-6" data-testid="reports-daily-trends">
+          <h3 className="text-lg font-semibold mb-4">Daily Activity</h3>
           <div className="space-y-2 max-h-64 overflow-y-auto">
             {statistics.daily_trends.slice(0, 14).map((day, index) => (
               <div key={index} className="flex items-center justify-between p-2 text-sm">
@@ -173,10 +173,10 @@ function StatisticsDashboard({
                 </div>
                 <div className="flex space-x-4 text-xs">
                   <span className="text-blue-600">
-                    📥 {day.packages_received} received
+                    {day.packages_received} received
                   </span>
                   <span className="text-green-600">
-                    📤 {day.packages_picked_up} picked up
+                    {day.packages_picked_up} picked up
                   </span>
                 </div>
               </div>
@@ -230,31 +230,31 @@ function PickupHistory({
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-8">
-        <div className="text-blue-600">🚚 Loading pickup history...</div>
+      <div className="flex items-center justify-center py-8" data-testid="reports-pickups-loading">
+        <div className="text-blue-600">Loading pickup history...</div>
       </div>
     );
   }
 
   if (!data || data.pickups.length === 0) {
     return (
-      <div className="text-center py-8 text-gray-500">
+      <div className="text-center py-8 text-gray-500" data-testid="reports-pickups-empty">
         No pickup history found for the selected criteria
       </div>
     );
   }
 
   return (
-    <div className="space-y-4">
+  <div className="space-y-4" data-testid="reports-pickups">
       {/* Summary */}
-      <div className="bg-white rounded-lg border border-gray-200 p-4">
+  <div className="bg-white rounded-lg border border-gray-200 p-4" data-testid="reports-pickups-summary">
         <div className="text-sm text-gray-600">
           Showing {data.pickups.length} of {data.pagination.total} pickup events
         </div>
       </div>
 
       {/* Pickup Events */}
-      <div className="space-y-3">
+  <div className="space-y-3" data-testid="reports-pickups-list">
         {data.pickups.map((pickup) => (
           <div 
             key={pickup.pickup_event_id} 
@@ -328,7 +328,7 @@ function PickupHistory({
 
       {/* Pagination */}
       {data.pagination.total > 25 && (
-        <div className="flex items-center justify-between bg-white border border-gray-200 rounded-lg p-4">
+        <div className="flex items-center justify-between bg-white border border-gray-200 rounded-lg p-4" data-testid="reports-pickups-pagination">
           <button
             onClick={() => setCurrentPage(Math.max(0, currentPage - 1))}
             disabled={currentPage === 0}
@@ -393,28 +393,22 @@ function AuditLog({
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-8">
-        <div className="text-blue-600">📋 Loading audit log...</div>
+      <div className="flex items-center justify-center py-8" data-testid="reports-audit-loading">
+        <div className="text-blue-600">Loading audit log...</div>
       </div>
     );
   }
 
   if (!data || data.audit_log.length === 0) {
     return (
-      <div className="text-center py-8 text-gray-500">
+      <div className="text-center py-8 text-gray-500" data-testid="reports-audit-empty">
         No audit log entries found for the selected criteria
       </div>
     );
   }
 
-  const getActionIcon = (actionType: string) => {
-    switch (actionType) {
-      case 'package_intake': return '📥';
-      case 'pickup': return '📤';
-      case 'status_change': return '🔄';
-      case 'tenant_update': return '👤';
-      default: return '📋';
-    }
+  const getActionIcon = (_: string) => {
+    return '';
   };
 
   const getActionColor = (actionType: string) => {
@@ -428,9 +422,9 @@ function AuditLog({
   };
 
   return (
-    <div className="space-y-4">
+  <div className="space-y-4" data-testid="reports-audit">
       {/* Filters */}
-      <div className="bg-white rounded-lg border border-gray-200 p-4">
+  <div className="bg-white rounded-lg border border-gray-200 p-4" data-testid="reports-audit-filters">
         <div className="flex items-center justify-between">
           <div className="text-sm text-gray-600">
             {data.audit_log.length} of {data.pagination.total} log entries
@@ -453,7 +447,7 @@ function AuditLog({
       </div>
 
       {/* Log Entries */}
-      <div className="space-y-2">
+  <div className="space-y-2" data-testid="reports-audit-list">
         {data.audit_log.map((entry, index) => (
           <div 
             key={index} 
@@ -497,7 +491,7 @@ function AuditLog({
 
       {/* Pagination */}
       {data.pagination.total > 50 && (
-        <div className="flex items-center justify-between bg-white border border-gray-200 rounded-lg p-4">
+        <div className="flex items-center justify-between bg-white border border-gray-200 rounded-lg p-4" data-testid="reports-audit-pagination">
           <button
             onClick={() => setCurrentPage(Math.max(0, currentPage - 1))}
             disabled={currentPage === 0}
@@ -559,24 +553,24 @@ export default function Reports({ selectedMailbox, selectedTenant, onError }: Re
   }, [activeTab]);
 
   const tabs = [
-    { id: 'statistics' as const, label: 'Statistics', icon: '📊', desc: 'Package & mailbox stats' },
-    { id: 'pickups' as const, label: 'Pickup History', icon: '📤', desc: 'All pickup events' },
-    { id: 'audit' as const, label: 'Audit Log', icon: '📋', desc: 'System activity log' },
+    { id: 'statistics' as const, label: 'Statistics', icon: '', desc: 'Package & mailbox stats' },
+    { id: 'pickups' as const, label: 'Pickup History', icon: '', desc: 'All pickup events' },
+    { id: 'audit' as const, label: 'Audit Log', icon: '', desc: 'System activity log' },
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8" data-testid="reports-root">
       {/* Header with Date Range */}
-      <div className="bg-white rounded-lg border border-gray-200 p-6">
+  <div className="bg-white rounded-lg border border-gray-200 p-6" data-testid="reports-header">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h2 className="text-xl font-bold text-gray-900">📊 Reports Dashboard</h2>
+            <h2 className="text-xl font-bold text-gray-900">Reports Dashboard</h2>
             <p className="text-gray-600 mt-1">
               {selectedMailbox ? `Mailbox ${selectedMailbox.mailbox_number}` : 'All mailboxes'}
               {selectedTenant && ` → ${selectedTenant.name}`}
             </p>
           </div>
-          <div className="mt-4 sm:mt-0 flex items-center space-x-4">
+          <div className="mt-4 sm:mt-0 flex items-center space-x-4" data-testid="reports-date-range">
             <div className="flex items-center space-x-2 text-sm">
               <label className="text-gray-600">From:</label>
               <input
@@ -584,6 +578,7 @@ export default function Reports({ selectedMailbox, selectedTenant, onError }: Re
                 value={dateRange.start_date}
                 onChange={(e) => setDateRange(prev => ({ ...prev, start_date: e.target.value }))}
                 className="border border-gray-300 rounded px-3 py-1"
+                data-testid="reports-date-from"
               />
             </div>
             <div className="flex items-center space-x-2 text-sm">
@@ -593,6 +588,7 @@ export default function Reports({ selectedMailbox, selectedTenant, onError }: Re
                 value={dateRange.end_date}
                 onChange={(e) => setDateRange(prev => ({ ...prev, end_date: e.target.value }))}
                 className="border border-gray-300 rounded px-3 py-1"
+                data-testid="reports-date-to"
               />
             </div>
           </div>
@@ -600,7 +596,7 @@ export default function Reports({ selectedMailbox, selectedTenant, onError }: Re
       </div>
 
       {/* Tab Navigation */}
-      <div className="bg-white rounded-lg border border-gray-200">
+  <div className="bg-white rounded-lg border border-gray-200" data-testid="reports-tabs">
         <div 
           ref={tabsRef}
           className="border-b border-gray-200"
@@ -608,7 +604,7 @@ export default function Reports({ selectedMailbox, selectedTenant, onError }: Re
           role="tablist"
           aria-label="Reports navigation"
         >
-          <nav className="-mb-px flex">
+          <nav className="-mb-px flex" data-testid="reports-tablist">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
@@ -620,6 +616,7 @@ export default function Reports({ selectedMailbox, selectedTenant, onError }: Re
                 }`}
                 role="tab"
                 aria-selected={activeTab === tab.id}
+                data-testid={`reports-tab-${tab.id}`}
               >
                 <div className="flex items-center justify-center space-x-2">
                   <span>{tab.icon}</span>
@@ -632,7 +629,7 @@ export default function Reports({ selectedMailbox, selectedTenant, onError }: Re
         </div>
 
         {/* Tab Content */}
-        <div className="p-6">
+  <div className="p-6" data-testid="reports-content">
           {activeTab === 'statistics' && (
             <StatisticsDashboard
               mailboxId={selectedMailbox?.id}
@@ -663,7 +660,7 @@ export default function Reports({ selectedMailbox, selectedTenant, onError }: Re
       {/* Keyboard Help */}
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
         <div className="text-sm text-blue-800">
-          <div className="font-medium mb-1">⌨️ Keyboard Navigation:</div>
+          <div className="font-medium mb-1">Keyboard Navigation:</div>
           <div>• Focus tabs and use <strong>← →</strong> arrow keys to switch between reports</div>
           <div>• Use date inputs to filter data by time period</div>
         </div>

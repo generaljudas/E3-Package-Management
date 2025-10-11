@@ -39,10 +39,8 @@ interface PickupWorkflowState {
   idVerified: boolean;
 }
 
-// status label map previously used for badges, retained via compact helpers below
-
 // Compact presentation helpers
-const STATUS_SHORT: Record<string, string> = {
+const STATUS_SHORT: { [key: string]: string } = {
   received: 'Received',
   ready_for_pickup: 'Ready',
   picked_up: 'Pick',
@@ -50,7 +48,7 @@ const STATUS_SHORT: Record<string, string> = {
   returned_to_sender: 'RTS',
 };
 
-const STATUS_DOT_CLASS: Record<string, string> = {
+const STATUS_DOT_CLASS: { [key: string]: string } = {
   received: 'bg-blue-500',
   ready_for_pickup: 'bg-green-500',
   picked_up: 'bg-gray-400',
@@ -69,7 +67,7 @@ export const PackagePickup: React.FC<PackagePickupProps> = ({
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'available' | 'picked_up'>('available');
-  
+
   const [workflow, setWorkflow] = useState<PickupWorkflowState>({
     step: 'list',
     selectedPackages: [],
@@ -84,6 +82,7 @@ export const PackagePickup: React.FC<PackagePickupProps> = ({
   // Load packages for the selected mailbox
   useEffect(() => {
     loadPackages();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedMailbox.id]);
 
   // Filter packages when search/filter changes
@@ -92,24 +91,25 @@ export const PackagePickup: React.FC<PackagePickupProps> = ({
 
     // Status filter
     if (statusFilter === 'available') {
-      filtered = filtered.filter(pkg => ['received', 'ready_for_pickup'].includes(pkg.status));
+      filtered = filtered.filter((pkg) => ['received', 'ready_for_pickup'].includes(pkg.status));
     } else if (statusFilter === 'picked_up') {
-      filtered = filtered.filter(pkg => pkg.status === 'picked_up');
+      filtered = filtered.filter((pkg) => pkg.status === 'picked_up');
     }
 
     // Search filter
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(pkg =>
-        pkg.tracking_number.toLowerCase().includes(query) ||
-        (pkg.carrier ? pkg.carrier.toLowerCase() : '').includes(query) ||
-        (pkg.recipient_name ? pkg.recipient_name.toLowerCase() : '').includes(query)
+      filtered = filtered.filter(
+        (pkg) =>
+          pkg.tracking_number.toLowerCase().includes(query) ||
+          (pkg.carrier ? pkg.carrier.toLowerCase() : '').includes(query) ||
+          (pkg.recipient_name ? pkg.recipient_name.toLowerCase() : '').includes(query)
       );
     }
 
     // Tenant filter (if specific tenant selected)
     if (selectedTenant) {
-      filtered = filtered.filter(pkg => pkg.tenant_id === selectedTenant.id);
+      filtered = filtered.filter((pkg) => pkg.tenant_id === selectedTenant.id);
     }
 
     setFilteredPackages(filtered);
@@ -142,11 +142,11 @@ export const PackagePickup: React.FC<PackagePickupProps> = ({
   const togglePackageSelection = (pkg: Package) => {
     if (pkg.status === 'picked_up') return; // Can't pick up already picked up packages
 
-    setWorkflow(prev => ({
+    setWorkflow((prev) => ({
       ...prev,
-      selectedPackages: prev.selectedPackages.find(p => p.id === pkg.id)
-        ? prev.selectedPackages.filter(p => p.id !== pkg.id)
-        : [...prev.selectedPackages, pkg]
+      selectedPackages: prev.selectedPackages.find((p) => p.id === pkg.id)
+        ? prev.selectedPackages.filter((p) => p.id !== pkg.id)
+        : [...prev.selectedPackages, pkg],
     }));
   };
 
@@ -155,8 +155,7 @@ export const PackagePickup: React.FC<PackagePickupProps> = ({
       onError?.('Please select at least one package');
       return;
     }
-
-    setWorkflow(prev => ({ ...prev, step: 'verify' }));
+    setWorkflow((prev) => ({ ...prev, step: 'verify' }));
   };
 
   const proceedToSignature = () => {
@@ -165,18 +164,13 @@ export const PackagePickup: React.FC<PackagePickupProps> = ({
       return;
     }
 
-    setWorkflow(prev => ({ 
-      ...prev, 
-      step: 'signature',
-      idVerified: true 
-    }));
+    setWorkflow((prev) => ({ ...prev, step: 'signature', idVerified: true }));
   };
 
-  const handleSignatureComplete = (signature: SignatureData) => {
-    setWorkflow(prev => ({
+  const handleSignatureChange = (signature: SignatureData | null) => {
+    setWorkflow((prev) => ({
       ...prev,
-      signature,
-      step: 'confirm'
+      signature: signature,
     }));
   };
 
@@ -193,13 +187,10 @@ export const PackagePickup: React.FC<PackagePickupProps> = ({
 
     try {
       const pickupData = {
-        package_ids: workflow.selectedPackages.map(p => p.id),
+        package_ids: workflow.selectedPackages.map((p) => p.id),
         tenant_id: selectedTenant.id,
         pickup_person_name: workflow.pickupPerson,
         signature_data: workflow.signature.dataURL,
-        // Optional:
-        // notes: undefined,
-        // staff_initials: undefined,
       };
 
       if (isOnline) {
@@ -239,7 +230,6 @@ export const PackagePickup: React.FC<PackagePickupProps> = ({
 
       // Reload packages to reflect pickup
       loadPackages();
-
     } catch (error) {
       console.error('Pickup error:', error);
       onError?.(error instanceof Error ? error.message : 'Failed to process pickup');
@@ -261,180 +251,323 @@ export const PackagePickup: React.FC<PackagePickupProps> = ({
       month: 'short',
       day: 'numeric',
       hour: '2-digit',
-      minute: '2-digit'
+      minute: '2-digit',
     });
   };
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-12">
-        <div className="text-center">
-          <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading packages...</p>
+      <div 
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '4rem 0',
+        }}
+        data-testid="pickup-loading"
+      >
+        <div style={{ textAlign: 'center' }}>
+          <div 
+            style={{
+              width: '3rem',
+              height: '3rem',
+              border: '3px solid #3b82f6',
+              borderTopColor: 'transparent',
+              borderRadius: '50%',
+              animation: 'spin 1s linear infinite',
+              margin: '0 auto 1rem',
+            }}
+          ></div>
+          <p style={{ 
+            color: 'var(--color-gray-600)',
+            fontSize: '1rem',
+            fontWeight: '500'
+          }}>
+            Loading packages...
+          </p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-        <h3 className="text-lg font-semibold text-green-900 mb-2">
-          📤 Package Pickup
-        </h3>
-        <div className="text-sm text-green-700">
-          <p>
-            <strong>Mailbox:</strong> {selectedMailbox.mailbox_number}
-            {selectedTenant && (
-              <span className="ml-4">
-                <strong>Tenant:</strong> {selectedTenant.name}
-              </span>
-            )}
-          </p>
-          {!isOnline && (
-            <div className="mt-2 flex items-center text-orange-600">
-              <div className="w-2 h-2 bg-orange-500 rounded-full mr-2"></div>
-              Working offline - pickups will be synced when connection returns
-            </div>
-          )}
-        </div>
-      </div>
-
+    <div className="space-y-6" data-testid="pickup-root">
       {workflow.step === 'list' && (
         <>
           {/* Search and Filter Controls */}
-          <div className="bg-white border border-gray-200 rounded-lg p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h4 className="text-lg font-medium text-gray-900">Available Packages</h4>
-              <div className="flex items-center space-x-4">
-                <div className="flex space-x-2">
-                  {(['all', 'available', 'picked_up'] as const).map(filter => (
-                    <button
-                      key={filter}
-                      onClick={() => setStatusFilter(filter)}
-                      className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
-                        statusFilter === filter
-                          ? 'bg-blue-600 text-white'
-                          : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                      }`}
-                    >
-                      {filter === 'all' ? 'All' : 
-                       filter === 'available' ? 'Available' : 'Picked Up'}
-                    </button>
-                  ))}
-                </div>
+          <div 
+            style={{
+              background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
+              borderRadius: 'var(--radius-lg)',
+              border: '2px solid #e2e8f0',
+              boxShadow: 'var(--shadow-md)',
+            }}
+            data-testid="pickup-step-list"
+          >
+            {/* Section Header */}
+            <div 
+              style={{
+                background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                padding: '1rem 1.5rem',
+                borderTopLeftRadius: 'var(--radius-lg)',
+                borderTopRightRadius: 'var(--radius-lg)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                boxShadow: 'var(--shadow-sm)',
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <span style={{ fontSize: '1.5rem' }}>✅</span>
+                <h4 style={{ 
+                  fontSize: '1.125rem', 
+                  fontWeight: '600', 
+                  color: 'white',
+                  margin: 0
+                }}>
+                  Available Packages
+                </h4>
+              </div>
+              <div style={{ display: 'flex', gap: '0.5rem' }} data-testid="pickup-status-filter">
+                {(['all', 'available', 'picked_up'] as const).map((filter) => (
+                  <button
+                    key={filter}
+                    onClick={() => setStatusFilter(filter)}
+                    data-testid={`pickup-filter-${filter}`}
+                    style={{
+                      padding: '0.5rem 1rem',
+                      borderRadius: 'var(--radius-md)',
+                      fontSize: '0.875rem',
+                      fontWeight: '600',
+                      transition: 'all 0.2s ease',
+                      border: 'none',
+                      cursor: 'pointer',
+                      background: statusFilter === filter 
+                        ? 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)'
+                        : 'rgba(255, 255, 255, 0.9)',
+                      color: statusFilter === filter ? 'white' : '#374151',
+                      boxShadow: statusFilter === filter ? 'var(--shadow-sm)' : 'none',
+                    }}
+                  >
+                    {filter === 'all' ? '📋 All' : filter === 'available' ? '✅ Available' : '📦 Picked Up'}
+                  </button>
+                ))}
               </div>
             </div>
 
-            <div className="mb-4">
+            {/* Search Input */}
+            <div style={{ padding: '1.5rem 1.5rem 0' }}>
               <input
                 ref={searchRef}
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search by tracking number, carrier, or recipient..."
+                placeholder="🔍 Search by tracking number, carrier, or recipient..."
                 className="input-field"
                 tabIndex={1}
+                data-testid="pickup-search-input"
+                style={{ width: '100%' }}
               />
             </div>
 
-            {/* Package List - Chart/Table style (ultra-compact) */}
-            <div>
+            {/* Package List */}
+            <div style={{ padding: '1.5rem' }}>
               {filteredPackages.length === 0 ? (
-                <div className="text-center py-8 text-gray-500">
-                  <div className="text-4xl mb-2">📦</div>
-                  <p>No packages found</p>
+                <div 
+                  style={{ 
+                    textAlign: 'center', 
+                    padding: '3rem 0',
+                    color: 'var(--color-gray-500)'
+                  }} 
+                  data-testid="pickup-no-packages"
+                >
+                  <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>📭</div>
+                  <p style={{ fontSize: '1.125rem', fontWeight: '500', marginBottom: '0.5rem' }}>No packages found</p>
                   {statusFilter === 'available' && (
-                    <p className="text-sm mt-1">No packages ready for pickup</p>
+                    <p style={{ fontSize: '0.875rem', color: 'var(--color-gray-400)' }}>
+                      No packages ready for pickup
+                    </p>
                   )}
                 </div>
               ) : (
-                <div className="rounded-lg border border-gray-200 overflow-x-auto w-full">
-                  <table className="w-full table-fixed text-sm">
-                    <colgroup>
-                      <col style={{ width: '38%' }} />
-                      <col style={{ width: '12%' }} />
-                      <col style={{ width: '16%' }} />
-                      <col style={{ width: '10%' }} />
-                      <col style={{ width: '12%' }} />
-                      <col style={{ width: '12%' }} />
-                    </colgroup>
-                    <thead className="bg-gray-50 text-gray-600 text-xs uppercase tracking-wider">
-                      <tr>
-                        <th className="px-2 py-2 text-left">Tracking</th>
-                        <th className="px-2 py-2 text-left">Status</th>
-                        <th className="px-2 py-2 text-left hidden sm:table-cell">Carrier</th>
-                        <th className="px-2 py-2 text-left hidden md:table-cell">Size</th>
-                        <th className="px-2 py-2 text-left">Received</th>
-                        <th className="px-2 py-2 text-left">Pick up date</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-200">
-                      {filteredPackages.map((pkg) => {
-                        const isSelected = workflow.selectedPackages.find(p => p.id === pkg.id);
-                        const canSelect = ['received', 'ready_for_pickup'].includes(pkg.status);
-                        const dot = STATUS_DOT_CLASS[pkg.status] || 'bg-gray-300';
-                        const label = pkg.status === 'picked_up' ? 'Picked Up' : (STATUS_SHORT[pkg.status] || pkg.status);
-                        return (
-                          <tr
-                            key={pkg.id}
-                            className={`${isSelected ? 'bg-blue-50' : ''} ${!canSelect ? 'opacity-60' : 'hover:bg-gray-50'} cursor-pointer`}
-                            onClick={() => canSelect && togglePackageSelection(pkg)}
-                            title={pkg.notes ? `Notes: ${pkg.notes}` : undefined}
-                          >
-                            <td className="px-2 py-1 align-middle whitespace-nowrap">
-                              <span className="inline-flex items-center gap-2">
-                                {canSelect && (
-                                  <input
-                                    type="checkbox"
-                                    checked={!!isSelected}
-                                    onChange={() => {}}
-                                    aria-label={`Select ${pkg.tracking_number}`}
-                                  />
-                                )}
-                                <span className="font-mono text-gray-900 truncate" title={pkg.tracking_number}>{pkg.tracking_number}</span>
-                              </span>
-                            </td>
-                            <td className="px-2 py-1 align-middle whitespace-nowrap">
-                              <span className="inline-flex items-center gap-1">
-                                <span className={`inline-block w-2 h-2 rounded-full ${dot}`}></span>
-                                <span className="text-xs text-gray-700">{label}</span>
-                              </span>
-                            </td>
-                            <td className="px-2 py-1 align-middle hidden sm:table-cell text-gray-700 whitespace-nowrap">{pkg.carrier ? pkg.carrier.toUpperCase() : 'N/A'}</td>
-                            <td className="px-2 py-1 align-middle hidden md:table-cell text-gray-700 whitespace-nowrap">{pkg.size ? pkg.size.replace('_', ' ') : 'N/A'}</td>
-                            <td className="px-2 py-1 align-middle text-gray-700 whitespace-nowrap">{formatDate(pkg.received_at)}</td>
-                            <td className="px-2 py-1 align-middle text-gray-700 whitespace-nowrap">
-                              {pkg.status === 'picked_up'
-                                ? (pkg.pickup_date ? formatDate(pkg.pickup_date) : 'Picked up')
-                                : 'Due for pickup'}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
+                <div 
+                  style={{
+                    borderRadius: 'var(--radius-md)',
+                    border: '2px solid #cbd5e1',
+                    overflow: 'hidden',
+                    boxShadow: 'var(--shadow-sm)',
+                    background: 'white',
+                  }}
+                  data-testid="pickup-table-container"
+                >
+                  <div style={{ overflowX: 'auto', width: '100%' }}>
+                    <table 
+                      style={{ 
+                        width: '100%', 
+                        tableLayout: 'fixed',
+                        fontSize: '0.875rem'
+                      }}
+                      data-testid="pickup-table"
+                    >
+                      <colgroup>
+                        <col style={{ width: '38%' }} />
+                        <col style={{ width: '12%' }} />
+                        <col style={{ width: '16%' }} />
+                        <col style={{ width: '10%' }} />
+                        <col style={{ width: '12%' }} />
+                        <col style={{ width: '12%' }} />
+                      </colgroup>
+                      <thead 
+                        style={{
+                          background: 'linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%)',
+                          color: 'var(--color-gray-700)',
+                          fontSize: '0.75rem',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.05em',
+                          fontWeight: '600',
+                        }}
+                      >
+                        <tr>
+                          <th style={{ padding: '0.75rem 0.5rem', textAlign: 'left' }} data-testid="pickup-col-tracking">Tracking</th>
+                          <th style={{ padding: '0.75rem 0.5rem', textAlign: 'left' }} data-testid="pickup-col-status">Status</th>
+                          <th style={{ padding: '0.75rem 0.5rem', textAlign: 'left' }} data-testid="pickup-col-carrier">Carrier</th>
+                          <th style={{ padding: '0.75rem 0.5rem', textAlign: 'left' }} data-testid="pickup-col-size">Size</th>
+                          <th style={{ padding: '0.75rem 0.5rem', textAlign: 'left' }} data-testid="pickup-col-received">Received</th>
+                          <th style={{ padding: '0.75rem 0.5rem', textAlign: 'left' }} data-testid="pickup-col-pickup-date">Pick up date</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {filteredPackages.map((pkg, index) => {
+                          const isSelected = workflow.selectedPackages.find((p) => p.id === pkg.id);
+                          const canSelect = ['received', 'ready_for_pickup'].includes(pkg.status);
+                          const dot = STATUS_DOT_CLASS[pkg.status] || 'bg-gray-300';
+                          const label = pkg.status === 'picked_up' ? 'Picked Up' : STATUS_SHORT[pkg.status] || pkg.status;
+                          return (
+                            <tr
+                              key={pkg.id}
+                              style={{
+                                background: isSelected 
+                                  ? 'linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%)'
+                                  : index % 2 === 0 ? 'white' : '#f8fafc',
+                                opacity: !canSelect ? 0.6 : 1,
+                                cursor: canSelect ? 'pointer' : 'default',
+                                borderBottom: index < filteredPackages.length - 1 ? '1px solid #e2e8f0' : 'none',
+                                transition: 'all 0.2s ease',
+                              }}
+                              onClick={() => canSelect && togglePackageSelection(pkg)}
+                              title={pkg.notes ? `Notes: ${pkg.notes}` : undefined}
+                              data-testid={`pickup-row-${pkg.id}`}
+                              onMouseEnter={(e) => {
+                                if (canSelect && !isSelected) {
+                                  e.currentTarget.style.background = '#f1f5f9';
+                                }
+                              }}
+                              onMouseLeave={(e) => {
+                                if (canSelect && !isSelected) {
+                                  e.currentTarget.style.background = index % 2 === 0 ? 'white' : '#f8fafc';
+                                }
+                              }}
+                            >
+                              <td style={{ padding: '0.75rem 0.5rem', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>
+                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
+                                  {canSelect && (
+                                    <input
+                                      type="checkbox"
+                                      checked={!!isSelected}
+                                      onChange={() => {}}
+                                      aria-label={`Select ${pkg.tracking_number}`}
+                                      data-testid={`pickup-select-${pkg.id}`}
+                                      style={{
+                                        width: '1.125rem',
+                                        height: '1.125rem',
+                                        cursor: 'pointer',
+                                        accentColor: '#3b82f6',
+                                      }}
+                                    />
+                                  )}
+                                  <span 
+                                    style={{ 
+                                      fontFamily: 'var(--font-mono)',
+                                      color: 'var(--color-gray-900)',
+                                      overflow: 'hidden',
+                                      textOverflow: 'ellipsis',
+                                      fontWeight: '500'
+                                    }}
+                                    title={pkg.tracking_number}
+                                  >
+                                    {pkg.tracking_number}
+                                  </span>
+                                </span>
+                              </td>
+                              <td style={{ padding: '0.75rem 0.5rem', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>
+                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}>
+                                  <span className={`inline-block w-2 h-2 rounded-full ${dot}`}></span>
+                                  <span style={{ fontSize: '0.75rem', color: 'var(--color-gray-700)', fontWeight: '500' }}>
+                                    {label}
+                                  </span>
+                                </span>
+                              </td>
+                              <td style={{ padding: '0.75rem 0.5rem', verticalAlign: 'middle', color: 'var(--color-gray-700)', whiteSpace: 'nowrap' }}>
+                                {pkg.carrier ? pkg.carrier.toUpperCase() : 'N/A'}
+                              </td>
+                              <td style={{ padding: '0.75rem 0.5rem', verticalAlign: 'middle', color: 'var(--color-gray-700)', whiteSpace: 'nowrap' }}>
+                                {pkg.size ? pkg.size.replace('_', ' ') : 'N/A'}
+                              </td>
+                              <td style={{ padding: '0.75rem 0.5rem', verticalAlign: 'middle', color: 'var(--color-gray-700)', whiteSpace: 'nowrap' }}>
+                                {formatDate(pkg.received_at)}
+                              </td>
+                              <td style={{ padding: '0.75rem 0.5rem', verticalAlign: 'middle', color: 'var(--color-gray-700)', whiteSpace: 'nowrap' }}>
+                                {pkg.status === 'picked_up' ? (pkg.pickup_date ? formatDate(pkg.pickup_date) : 'Picked up') : 'Due for pickup'}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               )}
             </div>
 
             {/* Selected Packages Summary */}
             {workflow.selectedPackages.length > 0 && (
-              <div className="mt-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                <div className="flex items-center justify-between">
+              <div 
+                style={{
+                  margin: '1.5rem',
+                  marginTop: '0',
+                  padding: '1.25rem 1.5rem',
+                  background: 'linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%)',
+                  border: '2px solid #93c5fd',
+                  borderRadius: 'var(--radius-md)',
+                  boxShadow: 'var(--shadow-md)',
+                }}
+                data-testid="pickup-selection-summary"
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem' }}>
                   <div>
-                    <p className="font-medium text-blue-900">
-                      {workflow.selectedPackages.length} package{workflow.selectedPackages.length !== 1 ? 's' : ''} selected for pickup
+                    <p style={{ 
+                      fontWeight: '600', 
+                      color: '#1e40af',
+                      fontSize: '1rem',
+                      marginBottom: '0.5rem'
+                    }}>
+                      ✓ {workflow.selectedPackages.length} package{workflow.selectedPackages.length !== 1 ? 's' : ''} selected for pickup
                     </p>
-                    <p className="text-sm text-blue-700">
-                      Tracking: {workflow.selectedPackages.map(p => p.tracking_number).join(', ')}
+                    <p style={{ fontSize: '0.875rem', color: '#1e40af', fontFamily: 'var(--font-mono)' }}>
+                      {workflow.selectedPackages.map((p) => p.tracking_number).join(', ')}
                     </p>
                   </div>
-                  <button
-                    onClick={startPickupProcess}
-                    className="btn btn-primary"
-                    tabIndex={2}
+                  <button 
+                    onClick={startPickupProcess} 
+                    className="btn btn-primary" 
+                    tabIndex={2} 
+                    data-testid="pickup-proceed"
+                    style={{
+                      padding: '0.75rem 1.75rem',
+                      fontSize: '0.875rem',
+                      fontWeight: '600',
+                      whiteSpace: 'nowrap',
+                    }}
                   >
                     Proceed to Pickup →
                   </button>
@@ -446,52 +579,135 @@ export const PackagePickup: React.FC<PackagePickupProps> = ({
       )}
 
       {workflow.step === 'verify' && (
-        <div className="bg-white border border-gray-200 rounded-lg p-6">
-          <h4 className="text-lg font-medium text-gray-900 mb-4">
-            Verify Pickup Information
-          </h4>
-          
-          <div className="space-y-4">
+        <div 
+          style={{
+            background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
+            borderRadius: 'var(--radius-lg)',
+            border: '2px solid #e2e8f0',
+            boxShadow: 'var(--shadow-md)',
+          }}
+          data-testid="pickup-step-verify"
+        >
+          {/* Section Header */}
+          <div 
+            style={{
+              background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+              padding: '1rem 1.5rem',
+              borderTopLeftRadius: 'var(--radius-lg)',
+              borderTopRightRadius: 'var(--radius-lg)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.75rem',
+              boxShadow: 'var(--shadow-sm)',
+            }}
+          >
+            <span style={{ fontSize: '1.5rem' }}>🔍</span>
+            <h4 style={{ 
+              fontSize: '1.125rem', 
+              fontWeight: '600', 
+              color: 'white',
+              margin: 0
+            }}>
+              Verify Pickup Information
+            </h4>
+          </div>
+
+          <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+            {/* Pickup Person Input */}
             <div>
-              <label htmlFor="pickup_person" className="block text-sm font-medium text-gray-700 mb-1">
-                Person Picking Up Packages *
+              <label 
+                htmlFor="pickup_person" 
+                style={{ 
+                  display: 'block', 
+                  fontSize: '0.875rem', 
+                  fontWeight: '600', 
+                  color: 'var(--color-gray-700)', 
+                  marginBottom: '0.5rem'
+                }}
+              >
+                👤 Person Picking Up Packages *
               </label>
               <input
                 id="pickup_person"
                 type="text"
                 value={workflow.pickupPerson}
-                onChange={(e) => setWorkflow(prev => ({ ...prev, pickupPerson: e.target.value }))}
+                onChange={(e) => setWorkflow((prev) => ({ ...prev, pickupPerson: e.target.value }))}
                 className="input-field"
                 placeholder="Full name of person picking up"
                 autoFocus
+                data-testid="pickup-person-input"
+                style={{ width: '100%' }}
               />
             </div>
 
-            <div className="bg-gray-50 p-4 rounded border">
-              <h5 className="font-medium text-gray-900 mb-2">
-                Packages to be picked up ({workflow.selectedPackages.length}):
+            {/* Package List */}
+            <div 
+              style={{
+                background: 'white',
+                padding: '1.25rem',
+                borderRadius: 'var(--radius-md)',
+                border: '2px solid #cbd5e1',
+                boxShadow: 'var(--shadow-sm)',
+              }}
+              data-testid="pickup-verify-list"
+            >
+              <h5 style={{ 
+                fontWeight: '600', 
+                color: 'var(--color-gray-900)', 
+                marginBottom: '1rem',
+                fontSize: '1rem'
+              }}>
+                📦 Packages to be picked up ({workflow.selectedPackages.length})
               </h5>
-              <ul className="space-y-1 text-sm text-gray-600">
-                {workflow.selectedPackages.map(pkg => (
-                  <li key={pkg.id} className="flex justify-between">
-                    <span>{pkg.tracking_number}</span>
-                    <span>{pkg.carrier ? pkg.carrier.toUpperCase() : 'N/A'}</span>
+              <ul style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                {workflow.selectedPackages.map((pkg, index) => (
+                  <li 
+                    key={pkg.id} 
+                    style={{ 
+                      display: 'flex', 
+                      justifyContent: 'space-between',
+                      padding: '0.75rem',
+                      background: index % 2 === 0 ? '#f8fafc' : 'white',
+                      borderRadius: 'var(--radius-sm)',
+                      fontSize: '0.875rem',
+                      fontWeight: '500',
+                    }}
+                  >
+                    <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--color-gray-900)' }}>
+                      {pkg.tracking_number}
+                    </span>
+                    <span style={{ color: 'var(--color-gray-600)' }}>
+                      {pkg.carrier ? pkg.carrier.toUpperCase() : 'N/A'}
+                    </span>
                   </li>
                 ))}
               </ul>
             </div>
 
-            <div className="flex space-x-3">
+            {/* Action Buttons */}
+            <div style={{ display: 'flex', gap: '0.75rem' }}>
               <button
                 onClick={proceedToSignature}
                 disabled={!workflow.pickupPerson.trim()}
                 className="btn btn-primary"
+                data-testid="pickup-continue-signature"
+                style={{
+                  padding: '0.75rem 1.75rem',
+                  fontSize: '0.875rem',
+                  fontWeight: '600',
+                }}
               >
                 Continue to Signature →
               </button>
-              <button
-                onClick={cancelPickup}
-                className="btn bg-gray-200 text-gray-700 hover:bg-gray-300"
+              <button 
+                onClick={cancelPickup} 
+                className="btn btn-secondary" 
+                data-testid="pickup-back-to-list"
+                style={{
+                  padding: '0.75rem 1.5rem',
+                  fontSize: '0.875rem',
+                  fontWeight: '600',
+                }}
               >
                 ← Back to List
               </button>
@@ -501,27 +717,92 @@ export const PackagePickup: React.FC<PackagePickupProps> = ({
       )}
 
       {workflow.step === 'signature' && (
-        <div className="bg-white border border-gray-200 rounded-lg p-6">
-          <h4 className="text-lg font-medium text-gray-900 mb-4">
-            Digital Signature Required
-          </h4>
-          
-          <div className="space-y-4">
-            <p className="text-gray-600">
-              <strong>{workflow.pickupPerson}</strong>, please sign below to confirm pickup of {workflow.selectedPackages.length} package{workflow.selectedPackages.length !== 1 ? 's' : ''}.
-            </p>
+        <div 
+          style={{
+            background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
+            borderRadius: 'var(--radius-lg)',
+            border: '2px solid #e2e8f0',
+            boxShadow: 'var(--shadow-md)',
+          }}
+          data-testid="pickup-step-signature"
+        >
+          {/* Section Header */}
+          <div 
+            style={{
+              background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
+              padding: '1rem 1.5rem',
+              borderTopLeftRadius: 'var(--radius-lg)',
+              borderTopRightRadius: 'var(--radius-lg)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.75rem',
+              boxShadow: 'var(--shadow-sm)',
+            }}
+          >
+            <span style={{ fontSize: '1.5rem' }}>✍️</span>
+            <h4 style={{ 
+              fontSize: '1.125rem', 
+              fontWeight: '600', 
+              color: 'white',
+              margin: 0
+            }}>
+              Digital Signature Required
+            </h4>
+          </div>
 
-            <SignaturePad
-              onSignatureComplete={handleSignatureComplete}
-              width={500}
-              height={200}
-              className="w-full"
-            />
+          <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+            {/* Instructions */}
+            <div 
+              style={{
+                background: 'white',
+                padding: '1rem 1.25rem',
+                borderRadius: 'var(--radius-md)',
+                border: '2px solid #cbd5e1',
+                boxShadow: 'var(--shadow-sm)',
+              }}
+            >
+              <p style={{ color: 'var(--color-gray-700)', fontSize: '0.9375rem', lineHeight: '1.6' }}>
+                <strong style={{ color: 'var(--color-gray-900)' }}>{workflow.pickupPerson}</strong>, please sign below to confirm pickup of{' '}
+                <strong>{workflow.selectedPackages.length}</strong> package{workflow.selectedPackages.length !== 1 ? 's' : ''}.
+              </p>
+            </div>
 
-            <div className="flex space-x-3">
+            {/* Signature Pad */}
+            <div data-testid="pickup-signature-pad">
+              <SignaturePad onSignatureChange={handleSignatureChange} width={500} height={200} className="w-full" />
+            </div>
+
+            {/* Action Buttons */}
+            <div style={{ display: 'flex', gap: '0.75rem' }}>
               <button
-                onClick={() => setWorkflow(prev => ({ ...prev, step: 'verify' }))}
-                className="btn bg-gray-200 text-gray-700 hover:bg-gray-300"
+                onClick={() => {
+                  if (!workflow.signature) {
+                    onError?.('Please provide a signature before confirming.');
+                    return;
+                  }
+                  setWorkflow((prev) => ({ ...prev, step: 'confirm' }));
+                }}
+                disabled={!workflow.signature}
+                className="btn btn-primary"
+                data-testid="pickup-confirm-signature"
+                style={{
+                  padding: '0.75rem 1.75rem',
+                  fontSize: '0.875rem',
+                  fontWeight: '600',
+                  opacity: !workflow.signature ? 0.5 : 1,
+                }}
+              >
+                ✓ Confirm Signature
+              </button>
+              <button
+                onClick={() => setWorkflow((prev) => ({ ...prev, step: 'verify' }))}
+                className="btn btn-secondary"
+                data-testid="pickup-back-to-verify"
+                style={{
+                  padding: '0.75rem 1.5rem',
+                  fontSize: '0.875rem',
+                  fontWeight: '600',
+                }}
               >
                 ← Back
               </button>
@@ -531,12 +812,14 @@ export const PackagePickup: React.FC<PackagePickupProps> = ({
       )}
 
       {workflow.step === 'confirm' && workflow.signature && (
-        <SignatureVerification
-          signature={workflow.signature}
-          recipientName={workflow.pickupPerson}
-          onConfirm={confirmPickup}
-          onRetry={() => setWorkflow(prev => ({ ...prev, step: 'signature', signature: null }))}
-        />
+        <div data-testid="pickup-verification">
+          <SignatureVerification
+            signature={workflow.signature}
+            recipientName={workflow.pickupPerson}
+            onConfirm={confirmPickup}
+            onRetry={() => setWorkflow((prev) => ({ ...prev, step: 'signature', signature: null }))}
+          />
+        </div>
       )}
     </div>
   );
