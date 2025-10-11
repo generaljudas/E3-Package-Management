@@ -4,11 +4,14 @@ export function AppHeader() {
       data-testid="app-header"
       style={{
         background: 'linear-gradient(135deg, #1e40af 0%, #3b82f6 100%)',
-        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)'
+        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+        height: '64px',
+        display: 'flex',
+        alignItems: 'center'
       }}
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center py-3">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8" style={{ width: '100%' }}>
+        <div className="flex justify-between items-center">
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }} data-testid="app-header-branding">
             <div 
               data-testid="app-logo"
@@ -75,38 +78,25 @@ export function AppHeader() {
               })}
             </div>
             <div 
-              data-testid="app-online-status-badge"
+              data-testid="app-online-indicator"
               style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '8px 16px',
-                background: 'rgba(255, 255, 255, 0.15)',
-                borderRadius: '20px',
-                backdropFilter: 'blur(10px)'
+                width: '8px',
+                height: '8px',
+                backgroundColor: '#10b981',
+                borderRadius: '50%',
+                boxShadow: '0 0 8px rgba(16, 185, 129, 0.5)'
+              }}
+            />
+            <span 
+              data-testid="app-online-text" 
+              style={{ 
+                color: 'white', 
+                fontSize: '0.875rem', 
+                fontWeight: '600' 
               }}
             >
-              <div 
-                data-testid="app-online-indicator"
-                style={{
-                  width: '8px',
-                  height: '8px',
-                  backgroundColor: '#10b981',
-                  borderRadius: '50%',
-                  boxShadow: '0 0 8px rgba(16, 185, 129, 0.5)'
-                }}
-              />
-              <span 
-                data-testid="app-online-text" 
-                style={{ 
-                  color: 'white', 
-                  fontSize: '0.875rem', 
-                  fontWeight: '600' 
-                }}
-              >
-                Online
-              </span>
-            </div>
+              Online
+            </span>
           </div>
         </div>
       </div>
