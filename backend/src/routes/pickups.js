@@ -259,16 +259,34 @@ router.post('/', [
       // Fallback path if pickup_events/signatures tables or columns are missing
       // (e.g., relation not found 42P01 or column not found 42703)
       if (dbErr && (dbErr.code === '42P01' || dbErr.code === '42703')) {
-        // Minimal completion: update packages and store signature on package rows if possible
-        await dbQuery(`
+        // Minimal completion aligned with current schema:
+        // 1) Update packages -> status='picked_up', picked_up_at timestamp
+        await dbQuery(
+          `
           UPDATE packages
           SET status = 'picked_up',
               picked_up_at = CURRENT_TIMESTAMP,
-              pickup_signature = COALESCE($2, pickup_signature),
-              pickup_date = CURRENT_TIMESTAMP,
               updated_at = CURRENT_TIMESTAMP
           WHERE id = ANY($1)
-        `, [package_ids, signature_data || null]);
+        `,
+          [package_ids]
+        );
+
+        // 2) If signature provided, store it in signatures table for each package
+        let signatureIds = [];
+        if (signature_data) {
+          for (const packageId of package_ids) {
+            const sigInsert = await dbQuery(
+              `
+              INSERT INTO signatures (package_id, signature_data)
+              VALUES ($1, $2)
+              RETURNING id
+            `,
+              [packageId, signature_data]
+            );
+            signatureIds.push(sigInsert.rows[0].id);
+          }
+        }
 
         return res.json({
           success: true,
@@ -280,11 +298,11 @@ router.post('/', [
             pickup_person: pickup_person_name,
             signature_required: signatureRequired,
             signature_captured: !!signature_data,
-            signature_id: null,
+            signature_ids: signatureIds,
             staff_initials,
             pickup_timestamp: new Date().toISOString(),
           },
-          packages: packageVerifyResult.rows.map(pkg => ({
+          packages: packageVerifyResult.rows.map((pkg) => ({
             id: pkg.id,
             tracking_number: pkg.tracking_number,
             status: 'picked_up',

@@ -70,7 +70,7 @@ export default function TenantLookup({
         return;
       }
 
-      console.log('🔄 Loading tenant cache...');
+  console.log('Loading tenant cache...');
       const startTime = performance.now();
       
       const response = await api.tenant.getAll();
@@ -81,9 +81,9 @@ export default function TenantLookup({
         lastFetched: Date.now(),
       };
 
-      console.log(`✅ Tenant cache loaded: ${response.tenants.length} tenants in ${Math.round(duration)}ms`);
+  console.log(`Tenant cache loaded: ${response.tenants.length} tenants in ${Math.round(duration)}ms`);
     } catch (err) {
-      console.error('❌ Failed to load tenant cache:', err);
+  console.error('Failed to load tenant cache:', err);
       setError('Failed to load tenant data');
     }
   };
@@ -129,7 +129,7 @@ export default function TenantLookup({
     
     // Log if search is slow (should be < 10ms)
     if (duration > 10) {
-      console.warn(`⚠️ Slow tenant search (${Math.round(duration)}ms) for query: "${query}"`);
+  console.warn(`Slow tenant search (${Math.round(duration)}ms) for query: "${query}"`);
     }
 
     setSearchResults(results);

@@ -91,43 +91,58 @@ router.get('/statistics', [
     `, params);
 
     // Get daily package trends (last 30 days or date range)
-    const trendsQuery = start_date && end_date ? `
+    // Build a dedicated WHERE and params to avoid placeholder mismatches
+    let trendsWhere = '1=1';
+    const trendsParams = [];
+    let tIdx = 0;
+    if (start_date) {
+      tIdx++;
+      trendsWhere += ` AND p.received_at >= $${tIdx}`;
+      trendsParams.push(start_date);
+    }
+    if (end_date) {
+      tIdx++;
+      trendsWhere += ` AND p.received_at <= $${tIdx}`;
+      trendsParams.push(end_date);
+    }
+    if (!start_date && !end_date) {
+      // Default to last 30 days when no explicit range provided
+      trendsWhere += ` AND p.received_at >= CURRENT_DATE - INTERVAL '30 days'`;
+    }
+    if (mailbox_id) {
+      tIdx++;
+      trendsWhere += ` AND m.id = $${tIdx}`;
+      trendsParams.push(parseInt(mailbox_id));
+    }
+
+    const trendsQuery = `
       SELECT 
         DATE(p.received_at) as date,
         COUNT(*) as packages_received,
         COUNT(CASE WHEN p.status = 'picked_up' THEN 1 END) as packages_picked_up
       FROM packages p
       JOIN mailboxes m ON p.mailbox_id = m.id
-      WHERE 1=1 ${dateFilter} ${mailboxFilter}
-      GROUP BY DATE(p.received_at)
-      ORDER BY date DESC
-    ` : `
-      SELECT 
-        DATE(p.received_at) as date,
-        COUNT(*) as packages_received,
-        COUNT(CASE WHEN p.status = 'picked_up' THEN 1 END) as packages_picked_up
-      FROM packages p
-      JOIN mailboxes m ON p.mailbox_id = m.id
-      WHERE p.received_at >= CURRENT_DATE - INTERVAL '30 days' ${mailboxFilter}
+      WHERE ${trendsWhere}
       GROUP BY DATE(p.received_at)
       ORDER BY date DESC
     `;
 
-    const dailyTrends = await dbQuery(trendsQuery, mailbox_id ? [parseInt(mailbox_id)] : []);
+    const dailyTrends = await dbQuery(trendsQuery, trendsParams);
 
     // Get top mailboxes by activity
     const topMailboxesQuery = `
       SELECT 
         m.mailbox_number,
-        m.default_tenant_name,
+        dt.name as default_tenant_name,
         COUNT(p.id) as total_packages,
         COUNT(CASE WHEN p.status = 'picked_up' THEN 1 END) as picked_up_packages,
         COUNT(CASE WHEN p.status IN ('received', 'ready_for_pickup') THEN 1 END) as pending_packages,
         MAX(p.received_at) as last_package_date
       FROM mailboxes m
+      LEFT JOIN tenants dt ON m.default_tenant_id = dt.id
       LEFT JOIN packages p ON m.id = p.mailbox_id ${dateFilter.replace('received_at', 'p.received_at')}
       ${mailboxFilter}
-      GROUP BY m.id, m.mailbox_number, m.default_tenant_name
+  GROUP BY m.id, m.mailbox_number, dt.name
       HAVING COUNT(p.id) > 0
       ORDER BY total_packages DESC
       LIMIT 10

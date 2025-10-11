@@ -14,15 +14,15 @@ export const OfflineStatusBar: React.FC = () => {
   }
 
   return (
-    <div className="fixed top-0 left-0 right-0 z-50">
+    <div className="fixed top-0 left-0 right-0 z-50" data-testid="offline-status-root">
       {/* Main status bar */}
       {!status.isOnline && (
-        <div className="bg-red-600 text-white px-4 py-2 text-center text-sm font-medium">
+        <div className="bg-red-600 text-white px-4 py-2 text-center text-sm font-medium" data-testid="offline-status-banner">
           <span className="inline-flex items-center">
             <div className="w-2 h-2 bg-white rounded-full mr-2 animate-pulse"></div>
             Working Offline
             {status.queuedOperationsCount > 0 && (
-              <span className="ml-2 bg-red-700 px-2 py-1 rounded text-xs">
+              <span className="ml-2 bg-red-700 px-2 py-1 rounded text-xs" data-testid="offline-queued-count">
                 {status.queuedOperationsCount} operations pending sync
               </span>
             )}
@@ -32,7 +32,7 @@ export const OfflineStatusBar: React.FC = () => {
 
       {/* Sync pending indicator when online */}
       {status.isOnline && status.queuedOperationsCount > 0 && (
-        <div className="bg-yellow-600 text-white px-4 py-2 text-center text-sm font-medium">
+        <div className="bg-yellow-600 text-white px-4 py-2 text-center text-sm font-medium" data-testid="offline-syncing-banner">
           <span className="inline-flex items-center">
             <div className="w-2 h-2 bg-white rounded-full mr-2 animate-spin"></div>
             Syncing {status.queuedOperationsCount} operations...
@@ -41,7 +41,7 @@ export const OfflineStatusBar: React.FC = () => {
       )}
 
       {/* Notifications */}
-      <div className="fixed top-16 right-4 space-y-2 z-50">
+      <div className="fixed top-16 right-4 space-y-2 z-50" data-testid="offline-notifications">
         {notifications.map((notification) => (
           <div
             key={notification.id}
@@ -53,6 +53,7 @@ export const OfflineStatusBar: React.FC = () => {
               ${notification.type === 'error' ? 'bg-red-600' : ''}
             `}
             onClick={() => dismissNotification(notification.id)}
+            data-testid={`offline-notification-${notification.id}`}
           >
             <div className="flex items-center justify-between">
               <span>{notification.message}</span>

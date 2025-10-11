@@ -144,18 +144,16 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
   };
 
   return (
-    <div className={`relative ${className}`}>
+    <div className={`relative ${className}`} data-testid="barcode-scanner-root">
       {error ? (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4" data-testid="barcode-scanner-error">
           <div className="flex">
-            <div className="text-red-400">
-              ⚠️
-            </div>
+            <div className="text-red-400" data-testid="barcode-scanner-error-icon">!</div>
             <div className="ml-3">
-              <h3 className="text-sm font-medium text-red-800">
+              <h3 className="text-sm font-medium text-red-800" data-testid="barcode-scanner-error-title">
                 Camera Error
               </h3>
-              <p className="text-sm text-red-600 mt-1">
+              <p className="text-sm text-red-600 mt-1" data-testid="barcode-scanner-error-message">
                 {error}
               </p>
               <button
@@ -164,6 +162,7 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
                   if (isActive) initializeScanner();
                 }}
                 className="mt-2 text-sm text-red-600 hover:text-red-800 underline"
+                data-testid="barcode-scanner-retry"
               >
                 Try Again
               </button>
@@ -171,16 +170,20 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
           </div>
         </div>
       ) : (
-        <div className="scanner-container">
+        <div className="scanner-container" data-testid="barcode-scanner-container">
           <div 
             ref={scannerRef}
             className="w-full h-64 bg-black rounded-lg overflow-hidden relative"
+            data-testid="barcode-scanner-viewport"
           />
           
           {isActive && (
-            <div className="scanner-overlay">
-              <div className="scanner-crosshair"></div>
-              <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 text-white text-sm bg-black bg-opacity-50 px-3 py-1 rounded">
+            <div className="scanner-overlay" data-testid="barcode-scanner-overlay">
+              <div className="scanner-crosshair" data-testid="barcode-scanner-crosshair"></div>
+              <div 
+                className="absolute bottom-4 left-1/2 transform -translate-x-1/2 text-white text-sm bg-black bg-opacity-50 px-3 py-1 rounded"
+                data-testid="barcode-scanner-instruction"
+              >
                 Position barcode in the viewfinder
               </div>
             </div>
@@ -189,11 +192,14 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
       )}
 
       {!isActive && !error && (
-        <div className="bg-gray-100 border-2 border-dashed border-gray-300 rounded-lg h-64 flex items-center justify-center">
+        <div 
+          className="bg-gray-100 border-2 border-dashed border-gray-300 rounded-lg h-64 flex items-center justify-center"
+          data-testid="barcode-scanner-inactive"
+        >
           <div className="text-center text-gray-500">
-            <div className="text-4xl mb-2">📷</div>
-            <p>Camera scanner ready</p>
-            <p className="text-sm">Click "Start Scanner" to begin</p>
+            <div className="text-4xl mb-2" data-testid="barcode-scanner-inactive-icon">&nbsp;</div>
+            <p data-testid="barcode-scanner-inactive-title">Camera scanner ready</p>
+            <p className="text-sm" data-testid="barcode-scanner-inactive-hint">Click "Start Scanner" to begin</p>
           </div>
         </div>
       )}

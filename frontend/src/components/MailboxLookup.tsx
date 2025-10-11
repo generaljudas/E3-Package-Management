@@ -77,7 +77,7 @@ export default function MailboxLookup({
         return;
       }
 
-      console.log('🔄 Loading mailbox cache...');
+  console.log('Loading mailbox cache...');
       const startTime = performance.now();
       
       // Simulate API call - replace with actual API when backend is updated
@@ -101,9 +101,9 @@ export default function MailboxLookup({
         lastFetched: Date.now(),
       };
 
-      console.log(`✅ Mailbox cache loaded: ${mockMailboxes.length} mailboxes in ${Math.round(duration)}ms`);
+  console.log(`Mailbox cache loaded: ${mockMailboxes.length} mailboxes in ${Math.round(duration)}ms`);
     } catch (err) {
-      console.error('❌ Failed to load mailbox cache:', err);
+  console.error('Failed to load mailbox cache:', err);
       setError('Failed to load mailbox data');
     }
   };
@@ -143,7 +143,7 @@ export default function MailboxLookup({
     
     // Log if search is slow (should be < 10ms)
     if (duration > 10) {
-      console.warn(`⚠️ Slow mailbox search (${Math.round(duration)}ms) for query: "${query}"`);
+  console.warn(`Slow mailbox search (${Math.round(duration)}ms) for query: "${query}"`);
     }
 
     setSearchResults(results);
@@ -238,13 +238,13 @@ export default function MailboxLookup({
     setPendingDefaultChange(tenantId);
 
     try {
-      // Update on backend
-      const response = await fetch(`http://localhost:3001/api/tenants/mailboxes/${selectedMailbox.id}/default-tenant`, {
+      // Update on backend (by mailbox number to avoid missing ID issues in dev)
+      const response = await fetch(`http://localhost:3001/api/tenants/mailboxes/by-number/${encodeURIComponent(selectedMailbox.mailbox_number)}/default-tenant`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ default_tenant_id: tenantId }),
+        body: JSON.stringify({ default_tenant_id: tenantId, tenant_name: selectedTenant?.name || undefined }),
       });
 
       if (!response.ok) {
@@ -369,16 +369,10 @@ export default function MailboxLookup({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const clearSelection = () => {
-    setSelectedMailbox(null);
-    setSelectedTenant(null);
-    setAvailableTenants([]);
-    setInputValue('');
-    onValueChange?.('');
-  };
+  // Removed summary and clear functionality
 
   return (
-    <div className={`space-y-4 ${className}`}>
+    <div className={`space-y-4 ${className}`} data-testid="mailbox-lookup-root">
       {/* Mailbox Input */}
       <div className="relative">
         <div className="relative">
@@ -401,6 +395,7 @@ export default function MailboxLookup({
             } ${isSearching ? 'cursor-wait' : ''}`}
             autoComplete="off"
             spellCheck={false}
+            data-testid="mailbox-lookup-input"
           />
           
           {isSearching && (
@@ -417,7 +412,7 @@ export default function MailboxLookup({
         )}
 
         {showDropdown && searchResults.length > 0 && (
-          <div ref={dropdownRef} className="tenant-dropdown">
+          <div ref={dropdownRef} className="tenant-dropdown" data-testid="mailbox-lookup-dropdown">
             {searchResults.map((mailbox, index) => (
               <div
                 key={mailbox.id}
@@ -425,6 +420,7 @@ export default function MailboxLookup({
                 className={`tenant-option ${
                   index === highlightedIndex ? 'highlighted' : ''
                 }`}
+                data-testid={`mailbox-lookup-option-${mailbox.id}`}
               >
                 <div className="flex justify-between items-center">
                   <div>
@@ -461,50 +457,115 @@ export default function MailboxLookup({
 
       {/* Tenant Selection (when mailbox is selected) */}
       {selectedMailbox && availableTenants.length > 0 && (
-        <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-          <div className="flex items-center justify-between mb-3">
-            <label className="block text-sm font-medium text-gray-700">
-              Tenant for Mailbox {selectedMailbox.mailbox_number}
+        <div style={{
+          background: 'linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%)',
+          borderRadius: '12px',
+          padding: '1.5rem',
+          border: '2px solid #bae6fd',
+          marginTop: '1.5rem'
+        }}>
+          <div style={{ 
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: '1rem'
+          }}>
+            <label style={{
+              fontSize: '1.125rem',
+              fontWeight: '700',
+              color: '#0c4a6e'
+            }}>
+              Select Tenant for Mailbox {selectedMailbox.mailbox_number}
             </label>
-            <div className="text-xs text-gray-500">
+            <div style={{
+              fontSize: '0.75rem',
+              color: '#0369a1',
+              fontWeight: '600'
+            }}>
               Click "Set Default" to change default tenant
             </div>
           </div>
           
-          <div className="space-y-3">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
             {availableTenants.map((tenant) => {
               const isDefault = selectedMailbox.default_tenant_id === tenant.id;
               const isPending = pendingDefaultChange === tenant.id;
+              const isSelected = selectedTenant?.id === tenant.id;
               
               return (
-                <div key={tenant.id} className="flex items-center justify-between p-3 bg-white rounded border border-gray-200">
-                  <label className="flex items-center flex-1 cursor-pointer">
+                <div key={tenant.id} style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '1rem 1.25rem',
+                  background: isSelected ? 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)' : 'white',
+                  borderRadius: '10px',
+                  border: isSelected ? '2px solid #2563eb' : '2px solid #e5e7eb',
+                  boxShadow: isSelected ? '0 4px 12px rgba(59, 130, 246, 0.25)' : '0 2px 4px rgba(0, 0, 0, 0.05)',
+                  transition: 'all 0.2s',
+                  cursor: 'pointer'
+                }}>
+                  <label style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    flex: 1,
+                    cursor: 'pointer'
+                  }}>
                     <input
                       type="radio"
                       name="tenant"
                       value={tenant.id}
-                      checked={selectedTenant?.id === tenant.id}
+                      checked={isSelected}
                       onChange={() => handleTenantChange(tenant)}
-                      className="mr-3"
+                      style={{
+                        marginRight: '1rem',
+                        width: '20px',
+                        height: '20px',
+                        cursor: 'pointer',
+                        accentColor: '#3b82f6'
+                      }}
                     />
-                    <div className="flex-1">
-                      <div className="flex items-center">
-                        <span className="text-sm font-medium text-gray-900">
+                    <div style={{ flex: 1 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <span style={{
+                          fontSize: '1rem',
+                          fontWeight: '700',
+                          color: isSelected ? 'white' : '#111827'
+                        }}>
                           {tenant.name}
                         </span>
                         {isDefault && (
-                          <span className="ml-2 px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded-full font-medium">
-                            ⭐ Default
+                          <span style={{
+                            padding: '4px 10px',
+                            background: isSelected ? 'rgba(255, 255, 255, 0.2)' : '#dbeafe',
+                            color: isSelected ? 'white' : '#1e40af',
+                            fontSize: '0.75rem',
+                            borderRadius: '12px',
+                            fontWeight: '700'
+                          }}>
+                            DEFAULT
                           </span>
                         )}
                         {isPending && (
-                          <span className="ml-2 px-2 py-0.5 bg-yellow-100 text-yellow-700 text-xs rounded-full">
+                          <span style={{
+                            padding: '4px 10px',
+                            background: '#fef3c7',
+                            color: '#92400e',
+                            fontSize: '0.75rem',
+                            borderRadius: '12px',
+                            fontWeight: '600'
+                          }}>
                             Updating...
                           </span>
                         )}
                       </div>
                       {tenant.phone && (
-                        <div className="text-xs text-gray-500 mt-0.5">
+                        <div style={{
+                          fontSize: '0.875rem',
+                          color: isSelected ? 'rgba(255, 255, 255, 0.9)' : '#6b7280',
+                          marginTop: '4px',
+                          fontWeight: '500'
+                        }}>
                           📞 {tenant.phone}
                         </div>
                       )}
@@ -515,15 +576,30 @@ export default function MailboxLookup({
                     <button
                       onClick={() => handleSetDefaultTenant(tenant.id)}
                       disabled={isUpdatingDefault}
-                      className={`ml-3 px-3 py-1 text-xs rounded transition-colors ${
-                        isUpdatingDefault
-                          ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                          : 'bg-gray-200 text-gray-700 hover:bg-gray-300 hover:text-gray-900'
-                      }`}
+                      style={{
+                        marginLeft: '1rem',
+                        padding: '8px 16px',
+                        fontSize: '0.875rem',
+                        borderRadius: '8px',
+                        border: 'none',
+                        fontWeight: '600',
+                        cursor: isUpdatingDefault ? 'not-allowed' : 'pointer',
+                        background: isUpdatingDefault ? '#f3f4f6' : isSelected ? 'rgba(255, 255, 255, 0.2)' : '#f3f4f6',
+                        color: isUpdatingDefault ? '#9ca3af' : isSelected ? 'white' : '#374151',
+                        transition: 'all 0.2s',
+                        opacity: isUpdatingDefault ? 0.5 : 1
+                      }}
                     >
                       {isPending ? (
-                        <span className="flex items-center">
-                          <div className="w-3 h-3 border border-gray-400 border-t-transparent rounded-full animate-spin mr-1"></div>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <div style={{
+                            width: '12px',
+                            height: '12px',
+                            border: '2px solid #9ca3af',
+                            borderTopColor: 'transparent',
+                            borderRadius: '50%',
+                            animation: 'spin 1s linear infinite'
+                          }}></div>
                           Setting...
                         </span>
                       ) : (
@@ -535,71 +611,50 @@ export default function MailboxLookup({
               );
             })}
             
-            <div className="flex items-center p-3 bg-white rounded border border-gray-200">
-              <label className="flex items-center flex-1 cursor-pointer">
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              padding: '1rem 1.25rem',
+              background: selectedTenant === null ? 'linear-gradient(135deg, #6b7280 0%, #4b5563 100%)' : 'white',
+              borderRadius: '10px',
+              border: selectedTenant === null ? '2px solid #4b5563' : '2px solid #e5e7eb',
+              boxShadow: selectedTenant === null ? '0 4px 12px rgba(107, 114, 128, 0.25)' : '0 2px 4px rgba(0, 0, 0, 0.05)',
+              cursor: 'pointer'
+            }}>
+              <label style={{
+                display: 'flex',
+                alignItems: 'center',
+                flex: 1,
+                cursor: 'pointer'
+              }}>
                 <input
                   type="radio"
                   name="tenant"
                   value=""
                   checked={selectedTenant === null}
                   onChange={() => handleTenantChange(null)}
-                  className="mr-3"
+                  style={{
+                    marginRight: '1rem',
+                    width: '20px',
+                    height: '20px',
+                    cursor: 'pointer',
+                    accentColor: '#6b7280'
+                  }}
                 />
-                <span className="text-sm text-gray-500">No specific tenant selected</span>
+                <span style={{
+                  fontSize: '1rem',
+                  fontWeight: '600',
+                  color: selectedTenant === null ? 'white' : '#6b7280'
+                }}>
+                  No specific tenant selected
+                </span>
               </label>
             </div>
           </div>
         </div>
       )}
 
-      {/* Selected Summary */}
-      {selectedMailbox && (
-        <div className="bg-primary-50 rounded-lg p-4 border border-primary-200">
-          <div className="flex justify-between items-start">
-            <div className="flex-1">
-              <div className="font-medium text-primary-900">
-                📬 Mailbox {selectedMailbox.mailbox_number}
-              </div>
-              {selectedTenant && (
-                <div className="text-primary-800">
-                  👤 {selectedTenant.name}
-                  {selectedMailbox.default_tenant_id === selectedTenant.id && (
-                    <span className="ml-2 text-xs text-primary-600">(Default Tenant)</span>
-                  )}
-                  {selectedTenant.phone && (
-                    <div className="text-sm text-primary-600">
-                      📞 {selectedTenant.phone}
-                    </div>
-                  )}
-                </div>
-              )}
-              {!selectedTenant && availableTenants.length === 0 && (
-                <div className="text-sm text-primary-600">
-                  No tenants registered for this mailbox
-                </div>
-              )}
-              {!selectedTenant && availableTenants.length > 0 && (
-                <div className="text-sm text-primary-600">
-                  No specific tenant selected
-                </div>
-              )}
-              
-              {/* Show default tenant info when no tenant is selected */}
-              {!selectedTenant && availableTenants.length > 0 && selectedMailbox.default_tenant_id && (
-                <div className="text-xs text-primary-500 mt-1">
-                  Default: {availableTenants.find(t => t.id === selectedMailbox.default_tenant_id)?.name}
-                </div>
-              )}
-            </div>
-            <button
-              onClick={clearSelection}
-              className="text-primary-600 hover:text-primary-800 text-sm ml-4"
-            >
-              Clear
-            </button>
-          </div>
-        </div>
-      )}
+      {/* Selected Summary removed per request */}
     </div>
   );
 }
