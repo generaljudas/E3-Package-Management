@@ -18,20 +18,73 @@ export const MailboxSearch: React.FC<MailboxSearchProps> = ({
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Mailbox[]>([]);
+  const [highlightedIndex, setHighlightedIndex] = useState(-1);
 
   const handleSearch = async (query: string) => {
     setSearchQuery(query);
     if (!query.trim()) {
       setSearchResults([]);
+      setHighlightedIndex(-1);
       return;
     }
     const results = await searchMailboxes(query);
     setSearchResults(results);
+    setHighlightedIndex(-1);
   };
 
   const handleClearSearch = () => {
     setSearchQuery('');
     setSearchResults([]);
+    setHighlightedIndex(-1);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    // Handle Enter key - auto-select best match
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      
+      if (searchResults.length === 0) {
+        return;
+      }
+
+      // If there's a highlighted result, select it
+      if (highlightedIndex >= 0 && highlightedIndex < searchResults.length) {
+        onViewMailbox(searchResults[highlightedIndex]);
+        return;
+      }
+
+      // Otherwise, select the first (best) result
+      if (searchResults.length > 0) {
+        onViewMailbox(searchResults[0]);
+      }
+      return;
+    }
+
+    // Handle arrow key navigation
+    if (searchResults.length === 0) {
+      return;
+    }
+
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        setHighlightedIndex(prev => 
+          prev < searchResults.length - 1 ? prev + 1 : 0
+        );
+        break;
+      
+      case 'ArrowUp':
+        e.preventDefault();
+        setHighlightedIndex(prev => 
+          prev > 0 ? prev - 1 : searchResults.length - 1
+        );
+        break;
+      
+      case 'Escape':
+        e.preventDefault();
+        handleClearSearch();
+        break;
+    }
   };
 
   return (
@@ -91,7 +144,8 @@ export const MailboxSearch: React.FC<MailboxSearchProps> = ({
             type="text"
             value={searchQuery}
             onChange={(e) => handleSearch(e.target.value)}
-            placeholder="Search by mailbox number or tenant name..."
+            onKeyDown={handleKeyDown}
+            placeholder="Search by mailbox number or tenant name (press Enter to select)"
             className="input-field"
             style={{
               width: '100%',
@@ -156,30 +210,26 @@ export const MailboxSearch: React.FC<MailboxSearchProps> = ({
             Found {searchResults.length} mailbox{searchResults.length !== 1 ? 'es' : ''}
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {searchResults.map((mailbox) => (
+            {searchResults.map((mailbox, index) => {
+              const isHighlighted = index === highlightedIndex;
+              return (
               <button
                 key={mailbox.id}
                 onClick={() => onViewMailbox(mailbox)}
+                onMouseEnter={() => setHighlightedIndex(index)}
                 className="mailbox-card"
                 style={{
-                  background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
-                  border: '2px solid #e2e8f0',
+                  background: isHighlighted 
+                    ? 'linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%)' 
+                    : 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
+                  border: isHighlighted ? '2px solid #3b82f6' : '2px solid #e2e8f0',
                   borderRadius: 'var(--radius-lg)',
                   padding: '1.25rem',
                   textAlign: 'left',
                   transition: 'all 0.3s ease',
-                  boxShadow: 'var(--shadow-md)',
+                  boxShadow: isHighlighted ? '0 10px 25px rgba(59, 130, 246, 0.3)' : 'var(--shadow-md)',
+                  transform: isHighlighted ? 'translateY(-4px)' : 'translateY(0)',
                   cursor: 'pointer',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.borderColor = '#3b82f6';
-                  e.currentTarget.style.boxShadow = '0 10px 25px rgba(59, 130, 246, 0.3)';
-                  e.currentTarget.style.transform = 'translateY(-4px)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.borderColor = '#e2e8f0';
-                  e.currentTarget.style.boxShadow = 'var(--shadow-md)';
-                  e.currentTarget.style.transform = 'translateY(0)';
                 }}
                 data-testid={`mailbox-card-${mailbox.mailbox_number}`}
               >
@@ -255,7 +305,8 @@ export const MailboxSearch: React.FC<MailboxSearchProps> = ({
                   View Tenants <span>→</span>
                 </div>
               </button>
-            ))}
+              );
+            })}
           </div>
         </div>
       ) : searchQuery && searchResults.length === 0 && !isSearching ? (
