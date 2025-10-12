@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import Reports from './Reports';
 import MailboxTenantManagement from './MailboxTenantManagement';
 import type { Mailbox, Tenant } from '../types';
@@ -40,6 +40,7 @@ const toolCategories: ToolCategory[] = [
 
 const Tools: React.FC<ToolsProps> = ({ selectedMailbox, selectedTenant, onError, onSuccess }) => {
   const [activeTool, setActiveTool] = useState<ToolId | null>(null);
+  const mailboxManagementBackHandler = useRef<(() => boolean) | null>(null);
 
   // Get icon and description for each tool
   const toolInfo: Record<ToolId, { icon: string; description: string }> = {
@@ -57,18 +58,56 @@ const Tools: React.FC<ToolsProps> = ({ selectedMailbox, selectedTenant, onError,
     }
   };
 
+  const handleBack = () => {
+    // If we're in mailbox management and it has a back handler, call it
+    if (activeTool === 'mailbox-management' && mailboxManagementBackHandler.current) {
+      const handled = mailboxManagementBackHandler.current();
+      if (handled) {
+        return; // Child component handled the back navigation
+      }
+    }
+    
+    // Otherwise, go back to tools list
+    setActiveTool(null);
+  };
+
+  const registerBackHandler = (handler: () => boolean) => {
+    mailboxManagementBackHandler.current = handler;
+  };
+
   return (
     <div className="space-y-8" data-testid="tools-root">
       {activeTool && (
-        <div className="flex items-center justify-between">
-          <button
-            onClick={() => setActiveTool(null)}
-            className="text-sm text-blue-600 hover:text-blue-800 font-medium"
-            data-testid="tools-back-button"
-          >
-            ← Back to Tools
-          </button>
-        </div>
+        <button
+          onClick={handleBack}
+          data-testid="tools-back-button"
+          style={{
+            background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+            color: 'white',
+            padding: '0.5rem 1rem',
+            borderRadius: 'var(--radius-md)',
+            border: 'none',
+            cursor: 'pointer',
+            fontSize: '0.875rem',
+            fontWeight: '600',
+            boxShadow: '0 2px 8px rgba(59, 130, 246, 0.25)',
+            transition: 'all 0.2s ease',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.375rem',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.transform = 'translateY(-1px)';
+            e.currentTarget.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.3)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.transform = 'translateY(0)';
+            e.currentTarget.style.boxShadow = '0 2px 8px rgba(59, 130, 246, 0.25)';
+          }}
+        >
+          <span style={{ fontSize: '1rem' }}>←</span>
+          <span>Back</span>
+        </button>
       )}
 
       {/* Show all tools in a single grid when no tool is active */}
@@ -141,6 +180,7 @@ const Tools: React.FC<ToolsProps> = ({ selectedMailbox, selectedTenant, onError,
             <MailboxTenantManagement
               onError={(e) => onError?.(e)}
               onSuccess={(message) => onSuccess?.(message)}
+              {...({ onRegisterBackHandler: registerBackHandler } as any)}
             />
           )}
         </div>

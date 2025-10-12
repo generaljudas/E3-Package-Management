@@ -4,7 +4,6 @@ import type { Mailbox, Tenant } from '../../types';
 interface MailboxDetailProps {
   mailbox: Mailbox;
   tenants: Tenant[];
-  onBack: () => void;
   onDeleteMailbox: (mailbox: Mailbox) => void;
   onAddTenant: () => void;
   onEditTenant: (tenant: Tenant) => void;
@@ -14,7 +13,6 @@ interface MailboxDetailProps {
 export const MailboxDetail: React.FC<MailboxDetailProps> = ({
   mailbox,
   tenants,
-  onBack,
   onDeleteMailbox,
   onAddTenant,
   onEditTenant,
@@ -31,30 +29,6 @@ export const MailboxDetail: React.FC<MailboxDetailProps> = ({
           boxShadow: 'var(--shadow-lg)',
         }}
       >
-        <button
-          onClick={onBack}
-          style={{
-            color: 'white',
-            fontSize: '0.8125rem',
-            fontWeight: '600',
-            marginBottom: '0.75rem',
-            background: 'rgba(255, 255, 255, 0.2)',
-            padding: '0.4375rem 0.875rem',
-            borderRadius: 'var(--radius-md)',
-            border: 'none',
-            cursor: 'pointer',
-            transition: 'all 0.2s ease',
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.3)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)';
-          }}
-          data-testid="back-to-list-button"
-        >
-          ← Back to Mailboxes
-        </button>
         <div style={{ 
           display: 'flex', 
           alignItems: 'center', 

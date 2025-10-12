@@ -199,7 +199,6 @@ export const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
           <div className="text-center text-gray-500">
             <div className="text-4xl mb-2" data-testid="barcode-scanner-inactive-icon">&nbsp;</div>
             <p data-testid="barcode-scanner-inactive-title">Camera scanner ready</p>
-            <p className="text-sm" data-testid="barcode-scanner-inactive-hint">Click "Start Scanner" to begin</p>
           </div>
         </div>
       )}
