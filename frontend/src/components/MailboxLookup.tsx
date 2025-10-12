@@ -79,33 +79,28 @@ export default function MailboxLookup({
         return;
       }
 
-  console.log('Loading mailbox cache...');
+      console.log('Loading mailbox cache...');
       const startTime = performance.now();
       
-      // Simulate API call - replace with actual API when backend is updated
-      const mockMailboxes: Mailbox[] = [
-        { id: 1, mailbox_number: '101', default_tenant_id: 1, active: true, created_at: '2025-10-06', default_tenant_name: 'John Smith' },
-        { id: 2, mailbox_number: '102', default_tenant_id: 2, active: true, created_at: '2025-10-06', default_tenant_name: 'Sarah Johnson' },
-        { id: 3, mailbox_number: '103', default_tenant_id: 3, active: true, created_at: '2025-10-06', default_tenant_name: 'Michael Brown' },
-        { id: 4, mailbox_number: '104', default_tenant_id: 4, active: true, created_at: '2025-10-06', default_tenant_name: 'Emily Davis' },
-        { id: 5, mailbox_number: '105', default_tenant_id: 5, active: true, created_at: '2025-10-06', default_tenant_name: 'David Wilson' },
-        { id: 6, mailbox_number: '145', default_tenant_id: 6, active: true, created_at: '2025-10-06', default_tenant_name: 'Alice Cooper' },
-        { id: 7, mailbox_number: '201', default_tenant_id: 7, active: true, created_at: '2025-10-06', default_tenant_name: 'Bob Martinez' },
-        { id: 8, mailbox_number: '202', default_tenant_id: 8, active: true, created_at: '2025-10-06', default_tenant_name: 'Carol White' },
-        { id: 9, mailbox_number: '301', default_tenant_id: 9, active: true, created_at: '2025-10-06', default_tenant_name: 'Robert Lee' },
-        { id: 10, mailbox_number: '350', default_tenant_id: 10, active: true, created_at: '2025-10-06', default_tenant_name: 'Lisa Anderson' },
-      ];
+      // Call actual API to get all mailboxes
+      const response = await fetch('http://localhost:3001/api/mailboxes');
+      if (!response.ok) {
+        throw new Error(`Failed to fetch mailboxes: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      const mailboxes = data.mailboxes || [];
       
       const duration = performance.now() - startTime;
       
       mailboxCache = {
-        mailboxes: mockMailboxes,
+        mailboxes: mailboxes,
         lastFetched: Date.now(),
       };
 
-  console.log(`Mailbox cache loaded: ${mockMailboxes.length} mailboxes in ${Math.round(duration)}ms`);
+      console.log(`Mailbox cache loaded: ${mailboxes.length} mailboxes in ${Math.round(duration)}ms`);
     } catch (err) {
-  console.error('Failed to load mailbox cache:', err);
+      console.error('Failed to load mailbox cache:', err);
       setError('Failed to load mailbox data');
     }
   };
@@ -186,17 +181,14 @@ export default function MailboxLookup({
   // Load tenants for selected mailbox
   const loadTenantsForMailbox = async (mailboxId: number) => {
     try {
-      // Mock tenant data - replace with actual API call
-      const mockTenants: Record<number, Tenant[]> = {
-        1: [{ id: 1, mailbox_id: 1, name: 'John Smith', phone: '555-0101', email: 'john.smith@email.com', active: true, created_at: '2025-10-06', mailbox_number: '101' }],
-        2: [{ id: 2, mailbox_id: 2, name: 'Sarah Johnson', phone: '555-0102', email: 'sarah.johnson@email.com', active: true, created_at: '2025-10-06', mailbox_number: '102' }],
-        6: [
-          { id: 6, mailbox_id: 6, name: 'Alice Cooper', phone: '555-0145', email: 'alice.cooper@email.com', active: true, created_at: '2025-10-06', mailbox_number: '145' },
-          { id: 11, mailbox_id: 6, name: 'Bob Cooper', phone: '555-0146', email: 'bob.cooper@email.com', active: true, created_at: '2025-10-06', mailbox_number: '145' }
-        ],
-      };
+      // Call actual API to get tenants for this mailbox
+      const response = await fetch(`http://localhost:3001/api/tenants?mailbox_id=${mailboxId}`);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch tenants: ${response.status}`);
+      }
       
-      const tenants = mockTenants[mailboxId] || [];
+      const data = await response.json();
+      const tenants = data.tenants || [];
       setAvailableTenants(tenants);
       
       return tenants;
@@ -220,7 +212,7 @@ export default function MailboxLookup({
     // Select default tenant if available
     let defaultTenant = null;
     if (mailbox.default_tenant_id && tenants.length > 0) {
-      defaultTenant = tenants.find(t => t.id === mailbox.default_tenant_id) || tenants[0];
+      defaultTenant = tenants.find((t: Tenant) => t.id === mailbox.default_tenant_id) || tenants[0];
       setSelectedTenant(defaultTenant);
     }
     
