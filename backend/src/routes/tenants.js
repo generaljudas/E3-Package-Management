@@ -197,9 +197,14 @@ router.get('/:id', [
  * Create new tenant
  */
 router.post('/', [
+  body('mailbox_id')
+    .optional()
+    .isInt()
+    .withMessage('Mailbox ID must be an integer'),
   body('mailbox_number')
+    .optional()
     .isLength({ min: 1, max: 10 })
-    .withMessage('Mailbox number is required and must be 1-10 characters'),
+    .withMessage('Mailbox number must be 1-10 characters'),
   body('name')
     .isLength({ min: 1, max: 255 })
     .withMessage('Name is required and must be 1-255 characters'),
@@ -214,26 +219,54 @@ router.post('/', [
   handleValidationErrors,
 ], async (req, res) => {
   try {
-    const { mailbox_number, name, phone, email, notes } = req.body;
+    const { mailbox_id, mailbox_number, name, phone, email, notes } = req.body;
     
-    // Check if mailbox number already exists
-    const existingResult = await dbQuery(
-      'SELECT id FROM tenants WHERE mailbox_number = $1',
-      [mailbox_number]
-    );
-    
-    if (existingResult.rows.length > 0) {
-      return res.status(409).json({
-        error: 'Mailbox number already exists',
-        mailbox_number,
+    // Must provide either mailbox_id or mailbox_number
+    if (!mailbox_id && !mailbox_number) {
+      return res.status(400).json({
+        error: 'Either mailbox_id or mailbox_number is required',
       });
     }
     
+    let effectiveMailboxId = mailbox_id;
+    
+    // If mailbox_number provided, look up the mailbox_id
+    if (mailbox_number && !mailbox_id) {
+      const mailboxResult = await dbQuery(
+        'SELECT id FROM mailboxes WHERE mailbox_number = $1 AND active = TRUE',
+        [mailbox_number]
+      );
+      
+      if (mailboxResult.rows.length === 0) {
+        return res.status(404).json({
+          error: 'Mailbox not found',
+          mailbox_number,
+        });
+      }
+      
+      effectiveMailboxId = mailboxResult.rows[0].id;
+    }
+    
+    // Verify mailbox exists if mailbox_id was provided
+    if (mailbox_id && !mailbox_number) {
+      const mailboxResult = await dbQuery(
+        'SELECT id FROM mailboxes WHERE id = $1 AND active = TRUE',
+        [mailbox_id]
+      );
+      
+      if (mailboxResult.rows.length === 0) {
+        return res.status(404).json({
+          error: 'Mailbox not found',
+          mailbox_id,
+        });
+      }
+    }
+    
     const result = await dbQuery(`
-      INSERT INTO tenants (mailbox_number, name, phone, email, notes)
+      INSERT INTO tenants (mailbox_id, name, phone, email, notes)
       VALUES ($1, $2, $3, $4, $5)
-      RETURNING id, mailbox_number, name, phone, email, notes, active, created_at
-    `, [mailbox_number, name, phone || null, email || null, notes || null]);
+      RETURNING id, mailbox_id, name, phone, email, notes, active, created_at
+    `, [effectiveMailboxId, name, phone || null, email || null, notes || null]);
 
     res.status(201).json({
       tenant: result.rows[0],
@@ -242,11 +275,10 @@ router.post('/', [
   } catch (err) {
     console.error('Error creating tenant:', err);
     
-    // Handle unique constraint violation
-    if (err.code === '23505') {
-      return res.status(409).json({
-        error: 'Mailbox number already exists',
-        mailbox_number: req.body.mailbox_number,
+    // Handle foreign key violation
+    if (err.code === '23503') {
+      return res.status(404).json({
+        error: 'Mailbox not found',
       });
     }
     
