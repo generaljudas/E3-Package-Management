@@ -305,7 +305,7 @@ export const PackagePickup: React.FC<PackagePickupProps> = ({
             data-testid="pickup-step-list"
           >
             {/* Section Header */}
-            <div 
+            <div
               style={{
                 background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
                 padding: '1rem 1.5rem',
@@ -313,21 +313,10 @@ export const PackagePickup: React.FC<PackagePickupProps> = ({
                 borderTopRightRadius: 'var(--radius-lg)',
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'space-between',
+                justifyContent: 'center',
                 boxShadow: 'var(--shadow-sm)',
               }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                <span style={{ fontSize: '1.5rem' }}>✅</span>
-                <h4 style={{ 
-                  fontSize: '1.125rem', 
-                  fontWeight: '600', 
-                  color: 'white',
-                  margin: 0
-                }}>
-                  Available Packages
-                </h4>
-              </div>
               <div style={{ display: 'flex', gap: '0.5rem' }} data-testid="pickup-status-filter">
                 {(['all', 'available', 'picked_up'] as const).map((filter) => (
                   <button
@@ -353,9 +342,7 @@ export const PackagePickup: React.FC<PackagePickupProps> = ({
                   </button>
                 ))}
               </div>
-            </div>
-
-            {/* Search Input and Select/Deselect All */}
+            </div>            {/* Search Input and Select/Deselect All */}
             <div style={{ padding: '1.5rem 1.5rem 0', display: 'flex', gap: '0.75rem' }}>
               <input
                 ref={searchRef}
