@@ -48,6 +48,25 @@ export const useMailboxes = (
         return mailboxNumberMatch || tenantMatch;
       });
 
+      // Sort results for best matches first
+      filtered.sort((a, b) => {
+        const aNumber = a.mailbox_number.toLowerCase();
+        const bNumber = b.mailbox_number.toLowerCase();
+        
+        // Exact mailbox number match first
+        if (aNumber === queryLower) return -1;
+        if (bNumber === queryLower) return 1;
+        
+        // Mailbox number starts with query
+        const aStarts = aNumber.startsWith(queryLower);
+        const bStarts = bNumber.startsWith(queryLower);
+        if (aStarts && !bStarts) return -1;
+        if (!aStarts && bStarts) return 1;
+        
+        // Sort by mailbox number numerically
+        return parseInt(a.mailbox_number) - parseInt(b.mailbox_number);
+      });
+
       return filtered;
     } catch (error) {
       console.error('Error searching mailboxes:', error);
