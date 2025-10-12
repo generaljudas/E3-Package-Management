@@ -14,7 +14,7 @@ interface UseTenantsReturn {
   tenantForm: TenantFormData;
   setTenantForm: (form: TenantFormData) => void;
   loadTenants: (mailboxId: number) => Promise<void>;
-  createTenant: (mailboxId: number, data: TenantFormData) => Promise<void>;
+  createTenant: (mailboxId: number, mailboxNumber: string, data: TenantFormData) => Promise<void>;
   updateTenant: (tenantId: number, data: TenantFormData) => Promise<void>;
   deleteTenant: (tenantId: number) => Promise<void>;
   resetForm: () => void;
@@ -48,7 +48,7 @@ export const useTenants = (
     }
   };
 
-  const createTenant = async (mailboxId: number, data: TenantFormData) => {
+  const createTenant = async (mailboxId: number, mailboxNumber: string, data: TenantFormData) => {
     if (!data.name.trim()) {
       onError?.('Please enter a tenant name');
       return;
@@ -58,6 +58,7 @@ export const useTenants = (
     try {
       await tenantApi.create({
         mailbox_id: mailboxId,
+        mailbox_number: mailboxNumber,
         name: data.name,
         email: data.email || undefined,
         phone: data.phone || undefined,
