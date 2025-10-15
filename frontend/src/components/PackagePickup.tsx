@@ -48,14 +48,6 @@ const STATUS_SHORT: { [key: string]: string } = {
   returned_to_sender: 'RTS',
 };
 
-const STATUS_DOT_CLASS: { [key: string]: string } = {
-  received: 'bg-blue-500',
-  ready_for_pickup: 'bg-green-500',
-  picked_up: 'bg-gray-400',
-  returned: 'bg-red-500',
-  returned_to_sender: 'bg-red-500',
-};
-
 export const PackagePickup: React.FC<PackagePickupProps> = ({
   selectedMailbox,
   selectedTenant,
@@ -470,7 +462,6 @@ export const PackagePickup: React.FC<PackagePickupProps> = ({
                         {filteredPackages.map((pkg, index) => {
                           const isSelected = workflow.selectedPackages.find((p) => p.id === pkg.id);
                           const canSelect = ['received', 'ready_for_pickup'].includes(pkg.status);
-                          const dot = STATUS_DOT_CLASS[pkg.status] || 'bg-gray-300';
                           const label = pkg.status === 'picked_up' ? 'Picked Up' : STATUS_SHORT[pkg.status] || pkg.status;
                           return (
                             <tr
@@ -498,8 +489,8 @@ export const PackagePickup: React.FC<PackagePickupProps> = ({
                                 }
                               }}
                             >
-                              <td style={{ padding: '0.75rem 0.5rem', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>
-                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}>
+                              <td style={{ padding: '0.75rem 0.5rem', verticalAlign: 'middle', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 0 }}>
+                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', overflow: 'hidden', maxWidth: '100%' }}>
                                   {canSelect && (
                                     <input
                                       type="checkbox"
@@ -512,6 +503,7 @@ export const PackagePickup: React.FC<PackagePickupProps> = ({
                                         height: '1.125rem',
                                         cursor: 'pointer',
                                         accentColor: '#3b82f6',
+                                        flexShrink: 0,
                                       }}
                                     />
                                   )}
@@ -521,7 +513,8 @@ export const PackagePickup: React.FC<PackagePickupProps> = ({
                                       color: 'var(--color-gray-900)',
                                       overflow: 'hidden',
                                       textOverflow: 'ellipsis',
-                                      fontWeight: '500'
+                                      fontWeight: '500',
+                                      whiteSpace: 'nowrap',
                                     }}
                                     title={pkg.tracking_number}
                                   >
@@ -529,22 +522,25 @@ export const PackagePickup: React.FC<PackagePickupProps> = ({
                                   </span>
                                 </span>
                               </td>
-                              <td style={{ padding: '0.75rem 0.5rem', verticalAlign: 'middle', whiteSpace: 'nowrap' }}>
-                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem' }}>
-                                  <span className={`inline-block w-2 h-2 rounded-full ${dot}`}></span>
-                                  <span style={{ fontSize: '0.75rem', color: 'var(--color-gray-700)', fontWeight: '500' }}>
-                                    {label}
-                                  </span>
+                              <td style={{ padding: '0.75rem 0.5rem', verticalAlign: 'middle', color: 'var(--color-gray-700)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 0 }}>
+                                <span style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis' }} title={label}>
+                                  {label}
                                 </span>
                               </td>
-                              <td style={{ padding: '0.75rem 0.5rem', verticalAlign: 'middle', color: 'var(--color-gray-700)', whiteSpace: 'nowrap' }}>
-                                {pkg.carrier ? pkg.carrier.toUpperCase() : 'N/A'}
+                              <td style={{ padding: '0.75rem 0.5rem', verticalAlign: 'middle', color: 'var(--color-gray-700)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 0 }}>
+                                <span style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis' }} title={pkg.carrier ? pkg.carrier.toUpperCase() : 'N/A'}>
+                                  {pkg.carrier ? pkg.carrier.toUpperCase() : 'N/A'}
+                                </span>
                               </td>
-                              <td style={{ padding: '0.75rem 0.5rem', verticalAlign: 'middle', color: 'var(--color-gray-700)', whiteSpace: 'nowrap' }}>
-                                {formatDate(pkg.received_at)}
+                              <td style={{ padding: '0.75rem 0.5rem', verticalAlign: 'middle', color: 'var(--color-gray-700)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 0 }}>
+                                <span style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis' }} title={formatDate(pkg.received_at)}>
+                                  {formatDate(pkg.received_at)}
+                                </span>
                               </td>
-                              <td style={{ padding: '0.75rem 0.5rem', verticalAlign: 'middle', color: 'var(--color-gray-700)', whiteSpace: 'nowrap' }}>
-                                {pkg.status === 'picked_up' ? (pkg.pickup_date ? formatDate(pkg.pickup_date) : 'Picked up') : 'Due for pickup'}
+                              <td style={{ padding: '0.75rem 0.5rem', verticalAlign: 'middle', color: 'var(--color-gray-700)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 0 }}>
+                                <span style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis' }} title={pkg.status === 'picked_up' ? (pkg.pickup_date ? formatDate(pkg.pickup_date) : 'Picked up') : 'Due for pickup'}>
+                                  {pkg.status === 'picked_up' ? (pkg.pickup_date ? formatDate(pkg.pickup_date) : 'Picked up') : 'Due for pickup'}
+                                </span>
                               </td>
                             </tr>
                           );
