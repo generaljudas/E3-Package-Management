@@ -168,7 +168,14 @@ export const SignaturePad: React.FC<SignaturePadProps> = ({
 
   return (
     <div className={`signature-pad-container ${className}`} data-testid="signature-pad-root">
-      <div className="relative bg-white border-2 border-gray-300 rounded-lg overflow-hidden" data-testid="signature-pad-container">
+      <div 
+        className="relative bg-white border-2 border-gray-300 rounded-lg overflow-hidden" 
+        data-testid="signature-pad-container"
+        style={{
+          width: `${width}px`,
+          height: `${height}px`,
+        }}
+      >
         <canvas
           ref={canvasRef}
           width={width}
@@ -182,9 +189,8 @@ export const SignaturePad: React.FC<SignaturePadProps> = ({
           onTouchMove={draw}
           onTouchEnd={stopDrawing}
           style={{ 
-            width: '100%', 
-            height: 'auto',
-            maxWidth: `${width}px`,
+            width: `${width}px`,
+            height: `${height}px`,
             touchAction: 'none' // Prevent scrolling while drawing
           }}
           data-testid="signature-pad-canvas"
