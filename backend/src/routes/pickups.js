@@ -30,7 +30,7 @@ router.get('/', async (req, res) => {
       offset = 0,
     } = req.query;
 
-    let whereConditions = ['pe.pickup_timestamp >= NOW() - INTERVAL \'' + parseInt(days) + ' days\''];
+    let whereConditions = ['pe.pickup_timestamp >= CURRENT_TIMESTAMP - INTERVAL \'' + parseInt(days) + ' days\''];
     let params = [];
     let paramCount = 0;
 
@@ -63,7 +63,7 @@ router.get('/', async (req, res) => {
         p.high_value,
         t.mailbox_number,
         t.name as tenant_name,
-        CASE WHEN s.id IS NOT NULL THEN TRUE ELSE FALSE END as has_signature
+        CASE WHEN s.id IS NOT NULL THEN 1 ELSE 0 END as has_signature
       FROM pickup_events pe
       JOIN packages p ON pe.package_id = p.id
       JOIN tenants t ON pe.tenant_id = t.id
@@ -139,7 +139,7 @@ router.post('/', [
         t.mailbox_number
       FROM packages p
       JOIN tenants t ON p.tenant_id = t.id
-      WHERE p.id = ANY($1) AND p.tenant_id = $2 AND t.active = TRUE
+      WHERE p.id = ANY(?) AND p.tenant_id = ? AND t.active = 1
     `, [package_ids, tenant_id]);
 
     if (packageVerifyResult.rows.length !== package_ids.length) {
@@ -188,7 +188,7 @@ router.post('/', [
         text: `
           UPDATE packages 
           SET status = 'picked_up', picked_up_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
-          WHERE id = ANY($1)
+          WHERE id = ANY(?)
         `,
         params: [package_ids],
       });
@@ -206,7 +206,7 @@ router.post('/', [
               notes,
               staff_initials
             )
-            VALUES ($1, $2, $3, $4, $5, $6, $7)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
             RETURNING id
           `,
           params: [
@@ -229,7 +229,7 @@ router.post('/', [
         const pickupEventIds = results.slice(1).map(result => result.rows[0].id);
         const signatureResult = await dbQuery(`
           INSERT INTO signatures (pickup_event_id, signature_data)
-          VALUES ($1, $2)
+          VALUES (?, ?)
           RETURNING id
         `, [pickupEventIds[0], signature_data]);
         signatureId = signatureResult.rows[0].id;
@@ -267,7 +267,7 @@ router.post('/', [
           SET status = 'picked_up',
               picked_up_at = CURRENT_TIMESTAMP,
               updated_at = CURRENT_TIMESTAMP
-          WHERE id = ANY($1)
+          WHERE id = ANY(?)
         `,
           [package_ids]
         );
@@ -279,7 +279,7 @@ router.post('/', [
             const sigInsert = await dbQuery(
               `
               INSERT INTO signatures (package_id, signature_data)
-              VALUES ($1, $2)
+              VALUES (?, ?)
               RETURNING id
             `,
               [packageId, signature_data]
@@ -352,7 +352,7 @@ router.get('/:id', [
       JOIN packages p ON pe.package_id = p.id
       JOIN tenants t ON pe.tenant_id = t.id
       LEFT JOIN signatures s ON s.pickup_event_id = pe.id
-      WHERE pe.id = $1
+      WHERE pe.id = ?
     `, [id]);
 
     if (result.rows.length === 0) {
@@ -392,8 +392,8 @@ router.post('/bulk-status', [
 
     const result = await dbQuery(`
       UPDATE packages 
-      SET status = $1, notes = COALESCE($2, notes), updated_at = CURRENT_TIMESTAMP
-      WHERE id = ANY($3) AND status IN ('received', 'ready_for_pickup')
+      SET status = ?, notes = COALESCE(?, notes), updated_at = CURRENT_TIMESTAMP
+      WHERE id = ANY(?) AND status IN ('received', 'ready_for_pickup')
       RETURNING id, tracking_number, status
     `, [status, notes, package_ids]);
 

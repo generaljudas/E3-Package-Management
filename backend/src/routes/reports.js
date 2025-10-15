@@ -65,7 +65,7 @@ router.get('/statistics', [
         COUNT(CASE WHEN p.status = 'received' THEN 1 END) as packages_received,
         COUNT(CASE WHEN p.status = 'ready_for_pickup' THEN 1 END) as packages_ready,
         COUNT(CASE WHEN p.status = 'picked_up' THEN 1 END) as packages_picked_up,
-        COUNT(CASE WHEN p.high_value = TRUE THEN 1 END) as high_value_packages,
+        COUNT(CASE WHEN p.high_value = 1 THEN 1 END) as high_value_packages,
         COUNT(DISTINCT p.mailbox_id) as active_mailboxes,
         COUNT(DISTINCT p.tenant_id) as active_tenants
       FROM packages p
@@ -246,7 +246,7 @@ router.get('/pickups', [
         COUNT(p.id) as package_count,
         ARRAY_AGG(p.tracking_number ORDER BY p.tracking_number) as tracking_numbers,
         ARRAY_AGG(p.carrier ORDER BY p.tracking_number) as carriers,
-        COUNT(CASE WHEN p.high_value = TRUE THEN 1 END) as high_value_count,
+        COUNT(CASE WHEN p.high_value = 1 THEN 1 END) as high_value_count,
         COUNT(s.id) as signature_count,
         pe.id as has_signature -- Will check if signatures exist
       FROM pickup_events pe
@@ -474,7 +474,7 @@ router.get('/mailbox/:mailboxId/summary', [
         t.email as default_tenant_email
       FROM mailboxes m
       LEFT JOIN tenants t ON m.default_tenant_id = t.id
-      WHERE m.id = $1
+      WHERE m.id = ?
     `, [parseInt(mailboxId)]);
 
     if (mailboxResult.rows.length === 0) {
@@ -490,10 +490,10 @@ router.get('/mailbox/:mailboxId/summary', [
         COUNT(CASE WHEN p.status = 'received' THEN 1 END) as packages_received,
         COUNT(CASE WHEN p.status = 'ready_for_pickup' THEN 1 END) as packages_ready,
         COUNT(CASE WHEN p.status = 'picked_up' THEN 1 END) as packages_picked_up,
-        COUNT(CASE WHEN p.high_value = TRUE THEN 1 END) as high_value_packages,
+        COUNT(CASE WHEN p.high_value = 1 THEN 1 END) as high_value_packages,
         COUNT(DISTINCT p.tenant_id) as associated_tenants
       FROM packages p
-      WHERE p.mailbox_id = $1 
+      WHERE p.mailbox_id = ? 
         AND p.received_at >= CURRENT_DATE - INTERVAL '${days} days'
     `, [parseInt(mailboxId)]);
 
@@ -509,7 +509,7 @@ router.get('/mailbox/:mailboxId/summary', [
         t.name as tenant_name
       FROM packages p
       LEFT JOIN tenants t ON p.tenant_id = t.id
-      WHERE p.mailbox_id = $1
+      WHERE p.mailbox_id = ?
         AND p.received_at >= CURRENT_DATE - INTERVAL '${days} days'
       ORDER BY p.received_at DESC
       LIMIT 20

@@ -43,7 +43,7 @@ router.get('/:id', [
       JOIN pickup_events pe ON s.pickup_event_id = pe.id
       JOIN packages p ON pe.package_id = p.id
       JOIN tenants t ON pe.tenant_id = t.id
-      WHERE s.id = $1
+      WHERE s.id = ?
     `, [id]);
 
     if (result.rows.length === 0) {
@@ -81,7 +81,7 @@ router.get('/pickup-event/:pickupEventId', [
         s.signature_url,
         s.created_at
       FROM signatures s
-      WHERE s.pickup_event_id = $1
+      WHERE s.pickup_event_id = ?
     `, [pickupEventId]);
 
     if (result.rows.length === 0) {
@@ -114,7 +114,7 @@ router.get('/image/:id', [
     const result = await dbQuery(`
       SELECT signature_data, signature_url
       FROM signatures
-      WHERE id = $1
+      WHERE id = ?
     `, [id]);
 
     if (result.rows.length === 0) {
@@ -184,7 +184,7 @@ router.delete('/:id', [
       FROM signatures s
       JOIN pickup_events pe ON s.pickup_event_id = pe.id
       JOIN packages p ON pe.package_id = p.id
-      WHERE s.id = $1
+      WHERE s.id = ?
     `, [id]);
 
     if (signatureResult.rows.length === 0) {
@@ -195,13 +195,13 @@ router.delete('/:id', [
     }
 
     // Delete the signature
-    await dbQuery(`DELETE FROM signatures WHERE id = $1`, [id]);
+    await dbQuery(`DELETE FROM signatures WHERE id = ?`, [id]);
 
     // Update the pickup event to reflect signature is no longer captured
     await dbQuery(`
       UPDATE pickup_events 
-      SET signature_captured = FALSE 
-      WHERE id = $1
+      SET signature_captured = 0 
+      WHERE id = ?
     `, [signatureResult.rows[0].pickup_event_id]);
 
     res.json({

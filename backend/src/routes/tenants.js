@@ -37,7 +37,7 @@ router.get('/', async (req, res) => {
         t.active,
         t.created_at
       FROM tenants t
-      WHERE t.active = TRUE
+      WHERE t.active = 1
     `;
     
     const queryParams = [];
@@ -83,16 +83,16 @@ router.get('/search', [
         phone,
         email
       FROM tenants 
-      WHERE active = TRUE
+      WHERE active = 1
         AND (
-          LOWER(mailbox_number) LIKE $1
-          OR LOWER(name) LIKE $1
+          LOWER(mailbox_number) LIKE ?
+          OR LOWER(name) LIKE ?
         )
       ORDER BY 
         CASE 
-          WHEN LOWER(mailbox_number) = $2 THEN 1
-          WHEN LOWER(mailbox_number) LIKE $1 THEN 2
-          WHEN LOWER(name) LIKE $1 THEN 3
+          WHEN LOWER(mailbox_number) = ? THEN 1
+          WHEN LOWER(mailbox_number) LIKE ? THEN 2
+          WHEN LOWER(name) LIKE ? THEN 3
           ELSE 4
         END,
         mailbox_number
@@ -131,7 +131,7 @@ router.get('/mailbox/:mailboxNumber', [
         email,
         active
       FROM tenants 
-      WHERE mailbox_number = $1 AND active = TRUE
+      WHERE mailbox_number = ? AND active = 1
     `, [mailboxNumber]);
 
     if (result.rows.length === 0) {
@@ -173,7 +173,7 @@ router.get('/:id', [
         created_at,
         updated_at
       FROM tenants 
-      WHERE id = $1
+      WHERE id = ?
     `, [id]);
 
     if (result.rows.length === 0) {
@@ -233,7 +233,7 @@ router.post('/', [
     // If mailbox_number provided, look up the mailbox_id
     if (mailbox_number && !mailbox_id) {
       const mailboxResult = await dbQuery(
-        'SELECT id FROM mailboxes WHERE mailbox_number = $1 AND active = TRUE',
+        'SELECT id FROM mailboxes WHERE mailbox_number = ? AND active = 1',
         [mailbox_number]
       );
       
@@ -250,7 +250,7 @@ router.post('/', [
     // Verify mailbox exists if mailbox_id was provided
     if (mailbox_id && !mailbox_number) {
       const mailboxResult = await dbQuery(
-        'SELECT id FROM mailboxes WHERE id = $1 AND active = TRUE',
+        'SELECT id FROM mailboxes WHERE id = ? AND active = 1',
         [mailbox_id]
       );
       
@@ -264,7 +264,7 @@ router.post('/', [
     
     const result = await dbQuery(`
       INSERT INTO tenants (mailbox_id, name, phone, email, notes)
-      VALUES ($1, $2, $3, $4, $5)
+      VALUES (?, ?, ?, ?, ?)
       RETURNING id, mailbox_id, name, phone, email, notes, active, created_at
     `, [effectiveMailboxId, name, phone || null, email || null, notes || null]);
 
@@ -313,13 +313,13 @@ router.put('/:id', [
     const result = await dbQuery(`
       UPDATE tenants 
       SET 
-        name = COALESCE($1, name),
-        phone = COALESCE($2, phone),
-        email = COALESCE($3, email),
-        notes = COALESCE($4, notes),
-        active = COALESCE($5, active),
+        name = COALESCE(?, name),
+        phone = COALESCE(?, phone),
+        email = COALESCE(?, email),
+        notes = COALESCE(?, notes),
+        active = COALESCE(?, active),
         updated_at = CURRENT_TIMESTAMP
-      WHERE id = $6
+      WHERE id = ?
       RETURNING id, mailbox_number, name, phone, email, notes, active, updated_at
     `, [name, phone, email, notes, active, id]);
 
@@ -353,8 +353,8 @@ router.delete('/:id', [
     
     const result = await dbQuery(`
       UPDATE tenants 
-      SET active = FALSE, updated_at = CURRENT_TIMESTAMP
-      WHERE id = $1
+      SET active = 0, updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
       RETURNING id, mailbox_number, name
     `, [id]);
 
@@ -385,35 +385,51 @@ router.patch('/mailboxes/:mailboxId/default-tenant', [
   body('default_tenant_id').isInt().withMessage('Default tenant ID must be an integer'),
   handleValidationErrors,
 ], async (req, res) => {
+  const startTime = Date.now();
   try {
     const { mailboxId } = req.params;
     const { default_tenant_id } = req.body;
+    
+    console.log(`[SET_DEFAULT_TENANT] START - mailboxId: ${mailboxId}, tenantId: ${default_tenant_id}`);
 
     // First verify that both mailbox and tenant exist and are related
     const verifyResult = await dbQuery(`
       SELECT m.id as mailbox_id, m.mailbox_number, t.id as tenant_id, t.name as tenant_name
       FROM mailboxes m
       CROSS JOIN tenants t
-      WHERE m.id = $1 AND t.id = $2 AND t.mailbox_id = m.id AND t.active = TRUE
+      WHERE m.id = ? AND t.id = ? AND t.mailbox_id = m.id AND t.active = 1
     `, [parseInt(mailboxId), parseInt(default_tenant_id)]);
 
+    console.log(`[SET_DEFAULT_TENANT] Verification result: ${verifyResult.rows.length} rows`);
+
     if (verifyResult.rows.length === 0) {
+      console.error(`[SET_DEFAULT_TENANT] VERIFICATION FAILED - mailboxId: ${mailboxId}, tenantId: ${default_tenant_id}`);
+      // Check what actually exists
+      const mailboxCheck = await dbQuery('SELECT id, mailbox_number, active FROM mailboxes WHERE id = ?', [parseInt(mailboxId)]);
+      const tenantCheck = await dbQuery('SELECT id, name, mailbox_id, active FROM tenants WHERE id = ?', [parseInt(default_tenant_id)]);
+      console.error('[SET_DEFAULT_TENANT] Mailbox exists:', mailboxCheck.rows);
+      console.error('[SET_DEFAULT_TENANT] Tenant exists:', tenantCheck.rows);
+      
       return res.status(404).json({ 
-        error: 'Mailbox or tenant not found, or tenant not associated with mailbox' 
+        error: 'Mailbox not found'
       });
     }
 
     // Update the default tenant for the mailbox
     const updateResult = await dbQuery(`
       UPDATE mailboxes 
-      SET default_tenant_id = $2, updated_at = CURRENT_TIMESTAMP
-      WHERE id = $1
+      SET default_tenant_id = ?, updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
       RETURNING id, mailbox_number, default_tenant_id, updated_at
-    `, [parseInt(mailboxId), parseInt(default_tenant_id)]);
+    `, [parseInt(default_tenant_id), parseInt(mailboxId)]);
 
     if (updateResult.rows.length === 0) {
+      console.error(`[SET_DEFAULT_TENANT] UPDATE FAILED - no rows returned`);
       return res.status(404).json({ error: 'Mailbox not found' });
     }
+
+    const duration = Date.now() - startTime;
+    console.log(`[SET_DEFAULT_TENANT] SUCCESS - mailbox ${mailboxId} updated in ${duration}ms`);
 
     res.json({
       message: 'Default tenant updated successfully',
@@ -424,7 +440,7 @@ router.patch('/mailboxes/:mailboxId/default-tenant', [
       },
     });
   } catch (err) {
-    console.error('Error updating default tenant:', err);
+    console.error('[SET_DEFAULT_TENANT] ERROR:', err);
     res.status(500).json({ error: 'Failed to update default tenant' });
   }
 });
@@ -446,7 +462,7 @@ router.patch('/mailboxes/by-number/:mailboxNumber/default-tenant', [
 
     // Ensure tenant exists and is active
     const tenantResult = await dbQuery(
-      'SELECT id, name, mailbox_id, mailbox_number, active FROM tenants WHERE id = $1',
+      'SELECT id, name, mailbox_id, active FROM tenants WHERE id = ?',
       [parseInt(default_tenant_id)]
     );
 
@@ -457,12 +473,12 @@ router.patch('/mailboxes/by-number/:mailboxNumber/default-tenant', [
       if ((process.env.NODE_ENV || 'development') !== 'production') {
         // Find or create mailbox first
         let mailboxResult = await dbQuery(
-          'SELECT id, mailbox_number FROM mailboxes WHERE mailbox_number = $1',
+          'SELECT id, mailbox_number FROM mailboxes WHERE mailbox_number = ?',
           [mailboxNumber]
         );
         if (mailboxResult.rows.length === 0) {
           const createMailbox = await dbQuery(
-            `INSERT INTO mailboxes (mailbox_number, active) VALUES ($1, TRUE) RETURNING id, mailbox_number`,
+            `INSERT INTO mailboxes (mailbox_number, active) VALUES (?, 1) RETURNING id, mailbox_number`,
             [mailboxNumber]
           );
           mailboxResult = createMailbox;
@@ -470,10 +486,10 @@ router.patch('/mailboxes/by-number/:mailboxNumber/default-tenant', [
         const mb = mailboxResult.rows[0];
         const nameToUse = tenant_name && tenant_name.trim().length > 0 ? tenant_name.trim() : `Default Tenant ${mailboxNumber}`;
         const createTenant = await dbQuery(
-          `INSERT INTO tenants (mailbox_id, name, phone, email, active, mailbox_number)
-           VALUES ($1, $2, NULL, NULL, TRUE, $3)
+          `INSERT INTO tenants (mailbox_id, name, phone, email, active)
+           VALUES (?, ?, NULL, NULL, 1)
            RETURNING id, name`,
-          [mb.id, nameToUse, mailboxNumber]
+          [mb.id, nameToUse]
         );
         effectiveTenantId = createTenant.rows[0].id;
         effectiveTenantName = createTenant.rows[0].name;
@@ -484,7 +500,7 @@ router.patch('/mailboxes/by-number/:mailboxNumber/default-tenant', [
 
     // Find mailbox by number
     let mailboxResult = await dbQuery(
-      'SELECT id, mailbox_number, default_tenant_id FROM mailboxes WHERE mailbox_number = $1',
+      'SELECT id, mailbox_number, default_tenant_id FROM mailboxes WHERE mailbox_number = ?',
       [mailboxNumber]
     );
 
@@ -493,7 +509,7 @@ router.patch('/mailboxes/by-number/:mailboxNumber/default-tenant', [
       if ((process.env.NODE_ENV || 'development') !== 'production') {
         const createResult = await dbQuery(`
           INSERT INTO mailboxes (mailbox_number, active)
-          VALUES ($1, TRUE)
+          VALUES (?, 1)
           RETURNING id, mailbox_number, default_tenant_id
         `, [mailboxNumber]);
         mailboxResult = createResult;
@@ -507,10 +523,10 @@ router.patch('/mailboxes/by-number/:mailboxNumber/default-tenant', [
     // Update default tenant
     const updateResult = await dbQuery(`
       UPDATE mailboxes 
-      SET default_tenant_id = $2, updated_at = CURRENT_TIMESTAMP
-      WHERE id = $1
+      SET default_tenant_id = ?, updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
       RETURNING id, mailbox_number, default_tenant_id, updated_at
-  `, [mailbox.id, effectiveTenantId]);
+  `, [effectiveTenantId, mailbox.id]);
 
     return res.json({
       message: 'Default tenant updated successfully',

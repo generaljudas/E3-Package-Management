@@ -14,9 +14,10 @@ interface UseTenantsReturn {
   tenantForm: TenantFormData;
   setTenantForm: (form: TenantFormData) => void;
   loadTenants: (mailboxId: number) => Promise<void>;
-  createTenant: (mailboxId: number, mailboxNumber: string, data: TenantFormData) => Promise<void>;
+  createTenant: (mailboxId: number, mailboxNumber: string, data: TenantFormData) => Promise<Tenant | null>;
   updateTenant: (tenantId: number, data: TenantFormData) => Promise<void>;
   deleteTenant: (tenantId: number) => Promise<void>;
+  setDefaultTenant: (mailboxId: number, tenantId: number) => Promise<void>;
   resetForm: () => void;
   populateForm: (tenant: Tenant) => void;
 }
@@ -48,15 +49,15 @@ export const useTenants = (
     }
   };
 
-  const createTenant = async (mailboxId: number, mailboxNumber: string, data: TenantFormData) => {
+  const createTenant = async (mailboxId: number, mailboxNumber: string, data: TenantFormData): Promise<Tenant | null> => {
     if (!data.name.trim()) {
       onError?.('Please enter a tenant name');
-      return;
+      return null;
     }
 
     setLoading(true);
     try {
-      await tenantApi.create({
+      const response = await tenantApi.create({
         mailbox_id: mailboxId,
         mailbox_number: mailboxNumber,
         name: data.name,
@@ -64,6 +65,7 @@ export const useTenants = (
         phone: data.phone || undefined,
       });
       onSuccess?.(`Tenant ${data.name} added successfully`);
+      return response.tenant;
     } catch (error) {
       console.error('Error adding tenant:', error);
       onError?.('Failed to add tenant');
@@ -110,6 +112,20 @@ export const useTenants = (
     }
   };
 
+  const setDefaultTenant = async (mailboxId: number, tenantId: number) => {
+    setLoading(true);
+    try {
+      await tenantApi.setDefaultTenant(mailboxId, tenantId);
+      onSuccess?.('Default tenant set successfully');
+    } catch (error) {
+      console.error('Error setting default tenant:', error);
+      onError?.('Failed to set default tenant');
+      throw error; // Re-throw so caller knows it failed
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const resetForm = () => {
     setTenantForm(initialFormState);
   };
@@ -131,6 +147,7 @@ export const useTenants = (
     createTenant,
     updateTenant,
     deleteTenant,
+    setDefaultTenant,
     resetForm,
     populateForm,
   };

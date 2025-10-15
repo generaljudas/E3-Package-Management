@@ -7,6 +7,7 @@ import { MailboxList } from './MailboxList';
 import { MailboxForm } from './MailboxForm';
 import { MailboxDetail } from './MailboxDetail';
 import { TenantForm } from './TenantForm';
+import { invalidateMailboxCache } from '../MailboxLookup';
 
 interface MailboxTenantManagementProps {
   onError?: (error: string) => void;
@@ -60,7 +61,8 @@ const MailboxTenantManagement: React.FC<MailboxTenantManagementProps> = ({
           return true;
         
         case 'view-mailbox':
-          handleBackToSearch();
+          // Go back to list view instead of search
+          setViewState({ mode: 'list', selectedMailbox: null, selectedTenant: null });
           return true;
         
         case 'add-tenant':
@@ -117,8 +119,54 @@ const MailboxTenantManagement: React.FC<MailboxTenantManagementProps> = ({
   };
 
   // Mailbox operations
-  const handleCreateMailbox = async (mailboxNumber: string) => {
-    await mailboxHook.createMailbox(mailboxNumber);
+  const handleCreateMailbox = async (mailboxNumber: string, tenants: Array<{name: string, email: string, phone: string}>) => {
+    console.log('Creating mailbox:', mailboxNumber, 'with tenants:', tenants);
+    
+    const mailbox = await mailboxHook.createMailbox(mailboxNumber);
+    
+    if (!mailbox) {
+      console.error('Mailbox creation failed - no mailbox returned');
+      throw new Error('Mailbox creation failed'); // Throw error so form doesn't clear
+    }
+    
+    console.log('Mailbox created successfully:', mailbox);
+    
+    // If mailbox was created and we have tenants to add
+    if (tenants.length > 0) {
+      let firstTenantId: number | null = null;
+      
+      // Add each tenant to the newly created mailbox
+      for (let i = 0; i < tenants.length; i++) {
+        const tenant = tenants[i];
+        try {
+          console.log(`Adding tenant ${i + 1}:`, tenant);
+          const createdTenant = await tenantHook.createTenant(mailbox.id, mailbox.mailbox_number, tenant);
+          console.log('Tenant created:', createdTenant);
+          
+          // Store the first tenant's ID
+          if (i === 0 && createdTenant) {
+            firstTenantId = createdTenant.id;
+          }
+        } catch (error) {
+          console.error('Error adding tenant:', error);
+        }
+      }
+      
+      // Set the first tenant as default if we have one
+      if (firstTenantId !== null) {
+        console.log('Setting default tenant:', firstTenantId, 'for mailbox:', mailbox.id);
+        // Small delay to ensure tenant is fully committed to database
+        await new Promise(resolve => setTimeout(resolve, 100));
+        await tenantHook.setDefaultTenant(mailbox.id, firstTenantId);
+        console.log('Default tenant API call completed');
+      }
+    }
+    
+    console.log('Navigating back to search');
+    
+    // Invalidate the mailbox cache so new mailbox appears in package intake
+    invalidateMailboxCache();
+    
     handleBackToSearch();
   };
 
@@ -127,7 +175,13 @@ const MailboxTenantManagement: React.FC<MailboxTenantManagementProps> = ({
       return;
     }
     await mailboxHook.deleteMailbox(mailbox.id);
-    handleBackToSearch();
+    
+    // Invalidate the mailbox cache so deletion is reflected in package intake
+    invalidateMailboxCache();
+    
+    // Go back to the list view and reload mailboxes
+    setViewState({ mode: 'list', selectedMailbox: null, selectedTenant: null });
+    await mailboxHook.loadMailboxes();
   };
 
   // Tenant operations
@@ -135,11 +189,23 @@ const MailboxTenantManagement: React.FC<MailboxTenantManagementProps> = ({
     e.preventDefault();
     if (!viewState.selectedMailbox) return;
 
-    await tenantHook.createTenant(
+    const isFirstTenant = tenantHook.tenants.length === 0;
+    
+    const createdTenant = await tenantHook.createTenant(
       viewState.selectedMailbox.id,
       viewState.selectedMailbox.mailbox_number,
       tenantHook.tenantForm
     );
+    
+    // If this is the first tenant, set it as default
+    if (isFirstTenant && createdTenant) {
+      try {
+        await tenantHook.setDefaultTenant(viewState.selectedMailbox.id, createdTenant.id);
+      } catch (error) {
+        console.error('Error setting default tenant:', error);
+      }
+    }
+    
     tenantHook.resetForm();
     setViewState({ ...viewState, mode: 'view-mailbox' });
     await tenantHook.loadTenants(viewState.selectedMailbox.id);

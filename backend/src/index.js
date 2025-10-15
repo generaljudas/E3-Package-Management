@@ -6,6 +6,9 @@ import dotenv from 'dotenv';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 
+// Import database
+import { initDatabase, closeDatabase } from './models/database.js';
+
 // Import routes
 import mailboxRoutes from './routes/mailboxes.js';
 import tenantRoutes from './routes/tenants.js';
@@ -43,7 +46,7 @@ const limiter = rateLimit({
 });
 app.use(limiter);
 
-// CORS configuration (allow common localhost dev ports)
+// CORS configuration (allow common localhost dev ports and Electron)
 app.use(cors({
   origin: (origin, callback) => {
     const defaultOrigin = process.env.FRONTEND_URL || 'http://localhost:5173';
@@ -52,8 +55,8 @@ app.use(cors({
       'http://localhost:5173',
       'http://localhost:5174',
     ]);
-    // Allow non-browser clients or same-origin requests
-    if (!origin) return callback(null, true);
+    // Allow non-browser clients, Electron (file:// protocol), or same-origin requests
+    if (!origin || origin.startsWith('file://')) return callback(null, true);
     if (allowedOrigins.has(origin) || /^http:\/\/localhost:\d+$/.test(origin)) {
       return callback(null, true);
     }
@@ -78,7 +81,15 @@ app.get('/health', (req, res) => {
   res.json({
     status: 'healthy',
     timestamp: new Date().toISOString(),
-    version: '1.0.0',
+    version: '1.0.0-beta.1',
+  });
+});
+
+app.get('/api/health', (req, res) => {
+  res.json({
+    status: 'healthy',
+    timestamp: new Date().toISOString(),
+    version: '1.0.0-beta.1',
   });
 });
 
@@ -129,21 +140,37 @@ app.use((err, req, res, next) => {
 });
 
 // Graceful shutdown
-process.on('SIGTERM', () => {
+process.on('SIGTERM', async () => {
   console.log('SIGTERM received, shutting down gracefully');
+  await closeDatabase();
   process.exit(0);
 });
 
-process.on('SIGINT', () => {
+process.on('SIGINT', async () => {
   console.log('SIGINT received, shutting down gracefully');
+  await closeDatabase();
   process.exit(0);
 });
 
-// Start server
-app.listen(PORT, () => {
-  console.log(`🚀 E3 Package Manager API running on port ${PORT}`);
-  console.log(`📊 Health check: http://localhost:${PORT}/health`);
-  console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
-});
+// Initialize database and start server
+const startServer = async () => {
+  try {
+    // Initialize SQLite database
+    await initDatabase();
+    
+    // Start server
+    app.listen(PORT, () => {
+      console.log(`🚀 E3 Package Manager API running on port ${PORT}`);
+      console.log(`📊 Health check: http://localhost:${PORT}/health`);
+      console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+      console.log(`💾 Database: SQLite (${process.env.ELECTRON_MODE === 'true' ? 'Electron' : 'Dev'} mode)`);
+    });
+  } catch (err) {
+    console.error('Failed to start server:', err);
+    process.exit(1);
+  }
+};
+
+startServer();
 
 export default app;

@@ -144,6 +144,17 @@ export const tenantApi = {
       method: 'DELETE',
     });
   },
+
+  // Set default tenant for a mailbox
+  async setDefaultTenant(mailboxId: number, tenantId: number) {
+    return apiRequest<{ mailbox: import('../types').Mailbox; message: string }>(
+      `/tenants/mailboxes/${mailboxId}/default-tenant`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify({ default_tenant_id: tenantId }),
+      }
+    );
+  },
 };
 
 // Package API methods
