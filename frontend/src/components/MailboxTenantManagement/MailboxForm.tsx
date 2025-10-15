@@ -55,34 +55,15 @@ export const MailboxForm: React.FC<MailboxFormProps> = ({
   };
 
   return (
-    <div className="space-y-6" data-testid="mailbox-management-add">
-      <button
-        onClick={onCancel}
-        style={{
-          color: '#3b82f6',
-          fontSize: '0.875rem',
-          fontWeight: '600',
-          background: 'linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%)',
-          padding: '0.75rem 1.25rem',
-          borderRadius: 'var(--radius-md)',
-          border: 'none',
-          cursor: 'pointer',
-          transition: 'all 0.2s ease',
-          boxShadow: 'var(--shadow-sm)',
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.background = 'linear-gradient(135deg, #bfdbfe 0%, #93c5fd 100%)';
-          e.currentTarget.style.boxShadow = 'var(--shadow-md)';
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.background = 'linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%)';
-          e.currentTarget.style.boxShadow = 'var(--shadow-sm)';
-        }}
-        data-testid="back-to-list-button"
-      >
-        ← Back to Mailboxes
-      </button>
-
+    <div 
+      className="space-y-6" 
+      data-testid="mailbox-management-add"
+      style={{
+        display: 'flex',
+        justifyContent: 'center',
+        width: '100%',
+      }}
+    >
       <div 
         style={{
           background: 'linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)',
@@ -90,6 +71,7 @@ export const MailboxForm: React.FC<MailboxFormProps> = ({
           border: '2px solid #e2e8f0',
           boxShadow: 'var(--shadow-lg)',
           maxWidth: '40rem',
+          width: '100%',
         }}
       >
         <div 
