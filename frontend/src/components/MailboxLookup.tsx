@@ -23,6 +23,12 @@ interface MailboxCache {
 let mailboxCache: MailboxCache | null = null;
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
+// Export function to invalidate cache (called after creating/deleting mailboxes)
+export function invalidateMailboxCache() {
+  console.log('Invalidating mailbox cache...');
+  mailboxCache = null;
+}
+
 export default function MailboxLookup({
   onMailboxSelect,
   onTenantChange,

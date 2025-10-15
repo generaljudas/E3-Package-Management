@@ -7,7 +7,7 @@ interface UseMailboxesReturn {
   loading: boolean;
   loadMailboxes: () => Promise<void>;
   searchMailboxes: (query: string) => Promise<Mailbox[]>;
-  createMailbox: (mailboxNumber: string) => Promise<void>;
+  createMailbox: (mailboxNumber: string) => Promise<Mailbox | null>;
   deleteMailbox: (mailboxId: number) => Promise<void>;
 }
 
@@ -77,20 +77,22 @@ export const useMailboxes = (
     }
   };
 
-  const createMailbox = async (mailboxNumber: string) => {
+  const createMailbox = async (mailboxNumber: string): Promise<Mailbox | null> => {
     if (!mailboxNumber.trim()) {
       onError?.('Please enter a mailbox number');
-      return;
+      return null;
     }
 
     setLoading(true);
     try {
-      await mailboxApi.create({ mailbox_number: mailboxNumber });
+      const response = await mailboxApi.create({ mailbox_number: mailboxNumber });
       onSuccess?.(`Mailbox ${mailboxNumber} created successfully`);
+      console.log('Mailbox created:', response.mailbox);
+      return response.mailbox;
     } catch (error) {
       console.error('Error creating mailbox:', error);
       onError?.('Failed to create mailbox');
-      throw error;
+      return null; // Return null instead of throwing to allow the form to handle the error gracefully
     } finally {
       setLoading(false);
     }

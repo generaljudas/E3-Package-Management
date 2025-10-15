@@ -51,6 +51,7 @@ export const MailboxList: React.FC<MailboxListProps> = ({
           flexWrap: 'wrap',
           gap: '0.75rem',
         }}
+        data-testid="mailbox-list-header"
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
           <span style={{ fontSize: '1.5rem' }}>📬</span>
@@ -59,7 +60,8 @@ export const MailboxList: React.FC<MailboxListProps> = ({
             fontWeight: '700', 
             color: 'white',
             margin: 0
-          }}>
+          }}
+          data-testid="mailbox-list-title">
             All Mailboxes
           </h4>
         </div>
@@ -156,7 +158,8 @@ export const MailboxList: React.FC<MailboxListProps> = ({
             fontSize: '0.8125rem', 
             color: '#6b7280',
             fontWeight: '500'
-          }}>
+          }}
+          data-testid="search-results-count">
             Showing {filteredMailboxes.length} of {mailboxes.length} mailbox{mailboxes.length !== 1 ? 'es' : ''}
           </div>
         )}
@@ -172,6 +175,7 @@ export const MailboxList: React.FC<MailboxListProps> = ({
             borderRadius: 'var(--radius-lg)',
             border: '3px dashed #cbd5e1',
           }}
+          data-testid="no-mailboxes-empty-state"
         >
           <div style={{ fontSize: '3.5rem', marginBottom: '1rem' }}>📭</div>
           <p style={{ 
@@ -192,6 +196,7 @@ export const MailboxList: React.FC<MailboxListProps> = ({
               fontSize: '0.875rem',
               fontWeight: '600',
             }}
+            data-testid="create-first-mailbox-button"
           >
             ➕ Create your first mailbox
           </button>
@@ -205,6 +210,7 @@ export const MailboxList: React.FC<MailboxListProps> = ({
             borderRadius: 'var(--radius-lg)',
             border: '3px dashed #cbd5e1',
           }}
+          data-testid="no-search-results-empty-state"
         >
           <div style={{ fontSize: '3.5rem', marginBottom: '1rem' }}>🔍</div>
           <p style={{ 
@@ -237,7 +243,7 @@ export const MailboxList: React.FC<MailboxListProps> = ({
           </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
           {filteredMailboxes.map((mailbox) => (
             <button
               key={mailbox.id}
@@ -246,95 +252,130 @@ export const MailboxList: React.FC<MailboxListProps> = ({
               style={{
                 background: 'linear-gradient(135deg, #ffffff 0%, #f8fafc 100%)',
                 border: '2px solid #e2e8f0',
-                borderRadius: 'var(--radius-lg)',
-                padding: '1.25rem',
+                borderRadius: 'var(--radius-md)',
+                padding: '0.75rem',
                 textAlign: 'left',
-                transition: 'all 0.3s ease',
-                boxShadow: 'var(--shadow-md)',
+                transition: 'all 0.2s ease',
+                boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
                 cursor: 'pointer',
+                minHeight: '80px',
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.borderColor = '#3b82f6';
-                e.currentTarget.style.boxShadow = '0 10px 25px rgba(59, 130, 246, 0.3)';
-                e.currentTarget.style.transform = 'translateY(-4px)';
+                e.currentTarget.style.boxShadow = '0 4px 12px rgba(59, 130, 246, 0.25)';
+                e.currentTarget.style.transform = 'translateY(-2px)';
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.borderColor = '#e2e8f0';
-                e.currentTarget.style.boxShadow = 'var(--shadow-md)';
+                e.currentTarget.style.boxShadow = '0 1px 3px rgba(0, 0, 0, 0.1)';
                 e.currentTarget.style.transform = 'translateY(0)';
               }}
               data-testid={`mailbox-card-${mailbox.mailbox_number}`}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
-                <div 
-                  style={{
-                    fontSize: '2.25rem',
-                    background: 'linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%)',
-                    borderRadius: 'var(--radius-md)',
-                    padding: '0.375rem',
-                    lineHeight: '1',
-                  }}
-                >
-                  📬
-                </div>
-                <div style={{ flex: 1 }}>
+              {/* Mailbox ID - at top center */}
+              <p style={{ 
+                fontSize: '0.625rem', 
+                color: '#cbd5e1',
+                fontWeight: '500',
+                margin: '0 0 0.5rem 0',
+                textAlign: 'center'
+              }}
+              data-testid={`mailbox-id-${mailbox.mailbox_number}`}
+              >
+                ID: {mailbox.id}
+              </p>
+              
+              {/* Centered header - number and tenant on same line */}
+              <div style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center',
+                gap: '0.5rem',
+                position: 'relative',
+                textAlign: 'center'
+              }}>
+                <div style={{ 
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.5rem',
+                  minWidth: 0, // Allows flex items to shrink below content size
+                  width: '100%'
+                }}>
                   <h5 style={{ 
-                    fontSize: '1.125rem', 
+                    fontSize: '1rem', 
                     fontWeight: '700', 
                     color: '#1f2937',
                     margin: 0,
-                    marginBottom: '0.125rem'
-                  }}>
+                    flexShrink: 0
+                  }}
+                  data-testid={`mailbox-number-${mailbox.mailbox_number}`}
+                  >
                     {mailbox.mailbox_number}
                   </h5>
-                  <p style={{ 
-                    fontSize: '0.6875rem', 
-                    color: '#9ca3af',
-                    fontWeight: '500',
-                    margin: 0
-                  }}>
-                    ID: {mailbox.id}
-                  </p>
+                  
+                  {/* Tenant name - horizontal next to number, same size */}
+                  {mailbox.default_tenant_name ? (
+                    <div 
+                      style={{
+                        fontSize: '1rem',
+                        color: '#1e40af',
+                        fontWeight: '700',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}
+                      data-testid={`default-tenant-${mailbox.mailbox_number}`}
+                    >
+                      👤 {mailbox.default_tenant_name}
+                    </div>
+                  ) : (
+                    <div 
+                      style={{
+                        fontSize: '1rem',
+                        color: '#9ca3af',
+                        fontWeight: '600',
+                        fontStyle: 'italic',
+                        whiteSpace: 'nowrap'
+                      }}
+                      data-testid={`default-tenant-${mailbox.mailbox_number}`}
+                    >
+                      No tenant
+                    </div>
+                  )}
+                </div>
+                
+                <div 
+                  style={{
+                    fontSize: '1rem',
+                    opacity: '0.3',
+                    lineHeight: '1',
+                    position: 'absolute',
+                    right: 0,
+                    top: 0
+                  }}
+                  data-testid={`mailbox-icon-${mailbox.mailbox_number}`}
+                >
+                  📬
                 </div>
               </div>
               
-              {mailbox.default_tenant_name && (
-                <div 
-                  style={{
-                    background: 'linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%)',
-                    borderRadius: 'var(--radius-md)',
-                    padding: '0.5rem 0.75rem',
-                    marginTop: '0.75rem',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.375rem',
-                  }}
-                >
-                  <span style={{ fontSize: '1rem' }}>👤</span>
-                  <span style={{ 
-                    fontSize: '0.8125rem',
-                    fontWeight: '600',
-                    color: '#1e40af'
-                  }}>
-                    {mailbox.default_tenant_name}
-                  </span>
-                </div>
-              )}
-              
               <div 
                 style={{
-                  marginTop: '0.875rem',
-                  paddingTop: '0.75rem',
+                  marginTop: '0.5rem',
+                  paddingTop: '0.5rem',
                   borderTop: '1px solid #e5e7eb',
-                  fontSize: '0.8125rem',
+                  fontSize: '0.6875rem',
                   color: '#3b82f6',
                   fontWeight: '600',
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '0.375rem',
+                  justifyContent: 'center',
+                  gap: '0.25rem',
                 }}
+                data-testid={`view-tenants-button-${mailbox.mailbox_number}`}
               >
-                View Tenants <span>→</span>
+                View <span>→</span>
               </div>
             </button>
           ))}

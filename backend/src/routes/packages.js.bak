@@ -147,7 +147,7 @@ router.get('/tenant/:tenantId', [
         t.name as tenant_name
       FROM packages p
       JOIN tenants t ON p.tenant_id = t.id
-      WHERE p.tenant_id = ? 
+      WHERE p.tenant_id = $1 
         AND p.status IN (${statusPlaceholders})
       ORDER BY p.received_at DESC
     `, [parseInt(tenantId), ...statusArray]);
@@ -178,7 +178,7 @@ router.get('/mailbox/:mailboxId', [
     const { mailboxId } = req.params;
     const { status, limit = 100 } = req.query;
 
-    let whereConditions = ['m.id = ?'];
+    let whereConditions = ['m.id = $1'];
     let params = [parseInt(mailboxId)];
     let paramCount = 1;
 
@@ -252,7 +252,7 @@ router.get('/tracking/:trackingNumber', [
         t.email as tenant_email
       FROM packages p
       JOIN tenants t ON p.tenant_id = t.id
-      WHERE p.tracking_number = ?
+      WHERE p.tracking_number = $1
     `, [trackingNumber]);
 
     if (result.rows.length === 0) {
@@ -310,7 +310,7 @@ router.post('/', [
       `SELECT t.id, t.name, t.mailbox_id, m.mailbox_number
        FROM tenants t
        JOIN mailboxes m ON t.mailbox_id = m.id
-       WHERE t.id = ? AND t.active = TRUE`,
+       WHERE t.id = $1 AND t.active = TRUE`,
       [tenant_id]
     );
 
@@ -325,7 +325,7 @@ router.post('/', [
 
     // Check if tracking number already exists
     const existingResult = await dbQuery(
-      'SELECT id FROM packages WHERE tracking_number = ?',
+      'SELECT id FROM packages WHERE tracking_number = $1',
       [tracking_number]
     );
 
@@ -350,7 +350,7 @@ router.post('/', [
         notes,
         status
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'received')
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'received')
       RETURNING 
         id,
         tracking_number,
@@ -408,16 +408,16 @@ router.put('/:id/status', [
     if (status === 'picked_up') {
       updateQuery = `
         UPDATE packages 
-        SET status = ?, picked_up_at = CURRENT_TIMESTAMP, notes = COALESCE(?, notes), updated_at = CURRENT_TIMESTAMP
-        WHERE id = ?
+        SET status = $1, picked_up_at = CURRENT_TIMESTAMP, notes = COALESCE($2, notes), updated_at = CURRENT_TIMESTAMP
+        WHERE id = $3
         RETURNING id, tracking_number, status, picked_up_at
       `;
       params = [status, notes, id];
     } else {
       updateQuery = `
         UPDATE packages 
-        SET status = ?, notes = COALESCE(?, notes), updated_at = CURRENT_TIMESTAMP
-        WHERE id = ?
+        SET status = $1, notes = COALESCE($2, notes), updated_at = CURRENT_TIMESTAMP
+        WHERE id = $3
         RETURNING id, tracking_number, status, picked_up_at
       `;
       params = [status, notes, id];
@@ -461,13 +461,13 @@ router.put('/:id', [
     const result = await dbQuery(`
       UPDATE packages 
       SET 
-        high_value = COALESCE(?, high_value),
-        pickup_by = COALESCE(?, pickup_by),
-        carrier = COALESCE(?, carrier),
-        size_category = COALESCE(?, size_category),
-        notes = COALESCE(?, notes),
+        high_value = COALESCE($1, high_value),
+        pickup_by = COALESCE($2, pickup_by),
+        carrier = COALESCE($3, carrier),
+        size_category = COALESCE($4, size_category),
+        notes = COALESCE($5, notes),
         updated_at = CURRENT_TIMESTAMP
-      WHERE id = ?
+      WHERE id = $6
       RETURNING id, tracking_number, high_value, pickup_by, carrier, size_category, notes, updated_at
     `, [high_value, pickup_by, carrier, size_category, notes, id]);
 
@@ -501,7 +501,7 @@ router.delete('/:id', [
 
     const result = await dbQuery(`
       DELETE FROM packages 
-      WHERE id = ?
+      WHERE id = $1
       RETURNING id, tracking_number
     `, [id]);
 

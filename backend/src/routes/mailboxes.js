@@ -34,7 +34,7 @@ router.get('/', async (req, res) => {
         t.name as default_tenant_name
       FROM mailboxes m
       LEFT JOIN tenants t ON m.default_tenant_id = t.id
-      WHERE m.active = TRUE
+      WHERE m.active = 1
       ORDER BY CAST(m.mailbox_number AS INTEGER)
     `);
 
@@ -72,7 +72,7 @@ router.get('/:id', [
         t.name as default_tenant_name
       FROM mailboxes m
       LEFT JOIN tenants t ON m.default_tenant_id = t.id
-      WHERE m.id = $1`,
+      WHERE m.id = ?`,
       [id]
     );
 
@@ -106,7 +106,7 @@ router.post('/', [
 
     // Check if mailbox number already exists
     const existing = await dbQuery(
-      'SELECT id FROM mailboxes WHERE mailbox_number = $1',
+      'SELECT id FROM mailboxes WHERE mailbox_number = ?',
       [mailbox_number]
     );
 
@@ -120,7 +120,7 @@ router.post('/', [
     // Insert new mailbox
     const result = await dbQuery(
       `INSERT INTO mailboxes (mailbox_number, notes, active, created_at)
-       VALUES ($1, $2, TRUE, NOW())
+       VALUES (?, ?, 1, CURRENT_TIMESTAMP)
        RETURNING 
          id,
          mailbox_number,
@@ -167,7 +167,7 @@ router.put('/:id', [
 
     // Check if mailbox exists
     const existing = await dbQuery(
-      'SELECT id FROM mailboxes WHERE id = $1',
+      'SELECT id FROM mailboxes WHERE id = ?',
       [id]
     );
 
@@ -178,7 +178,7 @@ router.put('/:id', [
     // If mailbox_number is being updated, check it doesn't conflict
     if (updates.mailbox_number) {
       const conflict = await dbQuery(
-        'SELECT id FROM mailboxes WHERE mailbox_number = $1 AND id != $2',
+        'SELECT id FROM mailboxes WHERE mailbox_number = ? AND id != ?',
         [updates.mailbox_number, id]
       );
 
@@ -193,18 +193,17 @@ router.put('/:id', [
     // Build update query dynamically
     const fields = [];
     const values = [];
-    let paramCount = 1;
 
     if (updates.mailbox_number !== undefined) {
-      fields.push(`mailbox_number = $${paramCount++}`);
+      fields.push(`mailbox_number = ?`);
       values.push(updates.mailbox_number);
     }
     if (updates.default_tenant_id !== undefined) {
-      fields.push(`default_tenant_id = $${paramCount++}`);
+      fields.push(`default_tenant_id = ?`);
       values.push(updates.default_tenant_id);
     }
     if (updates.notes !== undefined) {
-      fields.push(`notes = $${paramCount++}`);
+      fields.push(`notes = ?`);
       values.push(updates.notes);
     }
 
@@ -212,13 +211,13 @@ router.put('/:id', [
       return res.status(400).json({ error: 'No valid fields to update' });
     }
 
-    fields.push(`updated_at = NOW()`);
+    fields.push(`updated_at = CURRENT_TIMESTAMP`);
     values.push(id);
 
     const result = await dbQuery(
       `UPDATE mailboxes 
        SET ${fields.join(', ')}
-       WHERE id = $${paramCount}
+       WHERE id = ?
        RETURNING 
          id,
          mailbox_number,
@@ -242,8 +241,8 @@ router.put('/:id', [
 
 /**
  * DELETE /api/mailboxes/:id
- * Delete mailbox (soft delete - sets active = FALSE)
- * Also deactivates all associated tenants
+ * Delete mailbox (hard delete - permanently removes from database)
+ * Also permanently deletes all associated tenants
  */
 router.delete('/:id', [
   param('id').isInt().withMessage('Mailbox ID must be an integer'),
@@ -254,7 +253,7 @@ router.delete('/:id', [
 
     // Check if mailbox exists
     const existing = await dbQuery(
-      'SELECT mailbox_number FROM mailboxes WHERE id = $1',
+      'SELECT mailbox_number FROM mailboxes WHERE id = ?',
       [id]
     );
 
@@ -262,32 +261,22 @@ router.delete('/:id', [
       return res.status(404).json({ error: 'Mailbox not found' });
     }
 
-    // Start transaction
-    await dbQuery('BEGIN');
-
-    // Deactivate all tenants in this mailbox
+    // Permanently delete all tenants in this mailbox
     await dbQuery(
-      `UPDATE tenants 
-       SET active = FALSE, updated_at = NOW()
-       WHERE mailbox_id = $1`,
+      'DELETE FROM tenants WHERE mailbox_id = ?',
       [id]
     );
 
-    // Deactivate the mailbox
+    // Permanently delete the mailbox
     await dbQuery(
-      `UPDATE mailboxes 
-       SET active = FALSE, updated_at = NOW()
-       WHERE id = $1`,
+      'DELETE FROM mailboxes WHERE id = ?',
       [id]
     );
-
-    await dbQuery('COMMIT');
 
     res.json({
-      message: `Mailbox ${existing.rows[0].mailbox_number} and all associated tenants deleted successfully`,
+      message: `Mailbox ${existing.rows[0].mailbox_number} and all associated tenants permanently deleted`,
     });
   } catch (err) {
-    await dbQuery('ROLLBACK');
     console.error('Error deleting mailbox:', err);
     res.status(500).json({ error: 'Failed to delete mailbox' });
   }

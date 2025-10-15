@@ -1,7 +1,13 @@
 import React, { useState } from 'react';
 
+interface TenantData {
+  name: string;
+  email: string;
+  phone: string;
+}
+
 interface MailboxFormProps {
-  onSubmit: (mailboxNumber: string) => Promise<void>;
+  onSubmit: (mailboxNumber: string, tenants: TenantData[]) => Promise<void>;
   onCancel: () => void;
   loading: boolean;
 }
@@ -12,11 +18,40 @@ export const MailboxForm: React.FC<MailboxFormProps> = ({
   loading,
 }) => {
   const [mailboxNumber, setMailboxNumber] = useState('');
+  const [tenants, setTenants] = useState<TenantData[]>([
+    { name: '', email: '', phone: '' }
+  ]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await onSubmit(mailboxNumber);
-    setMailboxNumber('');
+    // Filter out empty tenants (where name is empty)
+    const validTenants = tenants.filter(t => t.name.trim() !== '');
+    
+    try {
+      await onSubmit(mailboxNumber, validTenants);
+      // Only clear the form if submission was successful
+      setMailboxNumber('');
+      setTenants([{ name: '', email: '', phone: '' }]);
+    } catch (error) {
+      // If there's an error, don't clear the form so user can correct it
+      console.error('Form submission error:', error);
+    }
+  };
+
+  const handleTenantChange = (index: number, field: keyof TenantData, value: string) => {
+    const newTenants = [...tenants];
+    newTenants[index][field] = value;
+    setTenants(newTenants);
+  };
+
+  const handleAddTenant = () => {
+    setTenants([...tenants, { name: '', email: '', phone: '' }]);
+  };
+
+  const handleRemoveTenant = (index: number) => {
+    if (tenants.length > 1) {
+      setTenants(tenants.filter((_, i) => i !== index));
+    }
   };
 
   return (
@@ -119,6 +154,189 @@ export const MailboxForm: React.FC<MailboxFormProps> = ({
               💡 Enter a unique mailbox number (e.g., 101, 145, 350)
             </p>
           </div>
+
+          {/* Tenants Section */}
+          <div style={{ marginBottom: '2rem' }}>
+            <div style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'space-between',
+              marginBottom: '1rem'
+            }}>
+              <label style={{ 
+                fontSize: '1rem',
+                fontWeight: '600',
+                color: '#374151',
+              }}>
+                Tenants (Optional)
+              </label>
+              <button
+                type="button"
+                onClick={handleAddTenant}
+                style={{
+                  background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+                  color: 'white',
+                  padding: '0.5rem 1rem',
+                  fontSize: '0.875rem',
+                  fontWeight: '600',
+                  borderRadius: 'var(--radius-md)',
+                  border: 'none',
+                  cursor: 'pointer',
+                  boxShadow: '0 2px 6px rgba(59, 130, 246, 0.3)',
+                }}
+                data-testid="add-tenant-field-button"
+              >
+                + Add Another Tenant
+              </button>
+            </div>
+
+            <p style={{ 
+              marginBottom: '1rem',
+              fontSize: '0.875rem',
+              color: '#6b7280',
+              fontStyle: 'italic'
+            }}>
+              💡 You can add tenants now or add them later
+            </p>
+
+            {tenants.map((tenant, index) => (
+              <div 
+                key={index}
+                style={{
+                  background: 'white',
+                  padding: '1.5rem',
+                  borderRadius: 'var(--radius-md)',
+                  border: '2px solid #e5e7eb',
+                  marginBottom: '1rem',
+                }}
+                data-testid={`tenant-${index}`}
+              >
+                <div style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'space-between',
+                  marginBottom: '1rem'
+                }}>
+                  <h5 style={{ 
+                    fontSize: '0.875rem',
+                    fontWeight: '700',
+                    color: '#1f2937',
+                    margin: 0
+                  }}>
+                    Tenant {index + 1}
+                  </h5>
+                  {tenants.length > 1 && (
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveTenant(index)}
+                      style={{
+                        background: '#fee2e2',
+                        color: '#dc2626',
+                        padding: '0.375rem 0.75rem',
+                        fontSize: '0.75rem',
+                        fontWeight: '600',
+                        borderRadius: 'var(--radius-sm)',
+                        border: 'none',
+                        cursor: 'pointer',
+                      }}
+                      data-testid={`remove-tenant-${index}`}
+                    >
+                      Remove
+                    </button>
+                  )}
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                  <div>
+                    <label 
+                      htmlFor={`tenant-name-${index}`}
+                      style={{ 
+                        display: 'block',
+                        fontSize: '0.875rem',
+                        fontWeight: '600',
+                        color: '#374151',
+                        marginBottom: '0.5rem',
+                      }}
+                    >
+                      Name
+                    </label>
+                    <input
+                      id={`tenant-name-${index}`}
+                      type="text"
+                      value={tenant.name}
+                      onChange={(e) => handleTenantChange(index, 'name', e.target.value)}
+                      placeholder="e.g., John Smith"
+                      className="input-field"
+                      style={{
+                        width: '100%',
+                        padding: '0.75rem 1rem',
+                        fontSize: '0.875rem',
+                      }}
+                      data-testid={`tenant-name-input-${index}`}
+                    />
+                  </div>
+
+                  <div>
+                    <label 
+                      htmlFor={`tenant-email-${index}`}
+                      style={{ 
+                        display: 'block',
+                        fontSize: '0.875rem',
+                        fontWeight: '600',
+                        color: '#374151',
+                        marginBottom: '0.5rem',
+                      }}
+                    >
+                      Email
+                    </label>
+                    <input
+                      id={`tenant-email-${index}`}
+                      type="email"
+                      value={tenant.email}
+                      onChange={(e) => handleTenantChange(index, 'email', e.target.value)}
+                      placeholder="e.g., john@example.com"
+                      className="input-field"
+                      style={{
+                        width: '100%',
+                        padding: '0.75rem 1rem',
+                        fontSize: '0.875rem',
+                      }}
+                      data-testid={`tenant-email-input-${index}`}
+                    />
+                  </div>
+
+                  <div>
+                    <label 
+                      htmlFor={`tenant-phone-${index}`}
+                      style={{ 
+                        display: 'block',
+                        fontSize: '0.875rem',
+                        fontWeight: '600',
+                        color: '#374151',
+                        marginBottom: '0.5rem',
+                      }}
+                    >
+                      Phone
+                    </label>
+                    <input
+                      id={`tenant-phone-${index}`}
+                      type="tel"
+                      value={tenant.phone}
+                      onChange={(e) => handleTenantChange(index, 'phone', e.target.value)}
+                      placeholder="e.g., (555) 123-4567"
+                      className="input-field"
+                      style={{
+                        width: '100%',
+                        padding: '0.75rem 1rem',
+                        fontSize: '0.875rem',
+                      }}
+                      data-testid={`tenant-phone-input-${index}`}
+                    />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
           
           <div style={{ display: 'flex', gap: '0.75rem' }}>
             <button
@@ -137,7 +355,7 @@ export const MailboxForm: React.FC<MailboxFormProps> = ({
               }}
               data-testid="submit-mailbox-button"
             >
-              {loading ? '⏳ Creating...' : '✓ Create Mailbox'}
+              {loading ? '⏳ Creating...' : '✓ Create Mailbox & Add Tenants'}
             </button>
             <button
               type="button"

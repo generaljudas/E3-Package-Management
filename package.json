@@ -1,0 +1,77 @@
+{
+  "name": "e3-package-manager",
+  "version": "1.0.0-beta.1",
+  "description": "A comprehensive package inventory management system for mailbox renting centers. Built with a staff-first approach for speed, reliability, and keyboard-optimized workflows.",
+  "main": "electron/main.js",
+  "scripts": {
+    "electron:dev": "electron .",
+    "electron:build": "electron-builder --windows",
+    "electron:build:all": "electron-builder --windows --mac --linux",
+    "prebuild": "cd frontend && npm run build",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/generaljudas/E3-Package-Management.git"
+  },
+  "keywords": [
+    "package-management",
+    "mailbox",
+    "barcode-scanner",
+    "inventory"
+  ],
+  "author": "E3 Package Manager Team",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/generaljudas/E3-Package-Management/issues"
+  },
+  "homepage": "https://github.com/generaljudas/E3-Package-Management#readme",
+  "devDependencies": {
+    "electron": "^38.2.2",
+    "electron-builder": "^26.0.12"
+  },
+  "build": {
+    "appId": "com.e3.package-manager",
+    "productName": "E3 Package Manager",
+    "directories": {
+      "output": "dist-electron"
+    },
+    "files": [
+      "electron/**/*",
+      "backend/**/*",
+      "frontend/dist/**/*",
+      "!backend/node_modules/**/*",
+      "!backend/database.sqlite",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "backend/node_modules",
+        "to": "backend/node_modules",
+        "filter": ["**/*"]
+      }
+    ],
+    "win": {
+      "target": ["nsis"],
+      "icon": "frontend/public/icon.svg"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "E3 Package Manager"
+    },
+    "mac": {
+      "target": ["dmg"],
+      "category": "public.app-category.business",
+      "icon": "frontend/public/icon.svg"
+    },
+    "linux": {
+      "target": ["AppImage"],
+      "category": "Office",
+      "icon": "frontend/public/icon.svg"
+    }
+  }
+}
