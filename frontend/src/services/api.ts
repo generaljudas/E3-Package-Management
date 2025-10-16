@@ -292,6 +292,11 @@ export const signatureApi = {
     return apiRequest<{ signature: import('../types').Signature }>(`/signatures/${id}`);
   },
 
+  // Get signature by package ID
+  async getByPackageId(packageId: number) {
+    return apiRequest<{ signature: import('../types').SignatureWithDetails }>(`/signatures/package/${packageId}`);
+  },
+
   // Get signature by pickup event ID
   async getByPickupEvent(pickupEventId: number) {
     return apiRequest<{ signature: import('../types').Signature }>(`/signatures/pickup-event/${pickupEventId}`);
@@ -410,6 +415,7 @@ export const reportsApi = {
 
 // Export all APIs
 export const api = {
+  mailbox: mailboxApi,
   tenant: tenantApi,
   package: packageApi,
   pickup: pickupApi,
@@ -417,5 +423,43 @@ export const api = {
   health: healthApi,
   reports: reportsApi,
 };
+
+// Helper functions for common operations
+export async function fetchMailboxes() {
+  const response = await mailboxApi.getAll();
+  return response.mailboxes;
+}
+
+export async function searchPackagesByDateRange(
+  mailboxId: number | null,
+  startDate: string,
+  endDate: string,
+  status?: string
+) {
+  const searchParams = new URLSearchParams();
+  
+  if (mailboxId) {
+    searchParams.append('mailbox_id', mailboxId.toString());
+  }
+  
+  searchParams.append('start_date', startDate);
+  searchParams.append('end_date', endDate);
+  
+  if (status) {
+    searchParams.append('status', status);
+  }
+  
+  const response = await apiRequest<{
+    packages: import('../types').Package[];
+    count: number;
+    filters: any;
+  }>(`/packages/search?${searchParams.toString()}`);
+  
+  return response.packages;
+}
+
+export async function getSignatureByPackageId(packageId: number) {
+  return signatureApi.getByPackageId(packageId);
+}
 
 export default api;

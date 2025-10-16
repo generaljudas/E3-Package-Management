@@ -6,14 +6,25 @@ interface MailboxSelectionCardProps {
   onTenantChange: (tenant: Tenant | null) => void;
   onDefaultTenantUpdate: (success: boolean, message: string) => void;
   onClearSelection?: () => void;
+  view?: 'intake' | 'pickup';
 }
 
 export function MailboxSelectionCard({
   onMailboxSelect,
   onTenantChange,
   onDefaultTenantUpdate,
-  onClearSelection
+  onClearSelection,
+  view = 'intake'
 }: MailboxSelectionCardProps) {
+  // Customize title and description based on view
+  const title = view === 'pickup' 
+    ? 'Select Mailbox' 
+    : 'Select Mailbox & Tenant';
+  
+  const description = view === 'pickup'
+    ? 'Search for a mailbox by number or tenant name to view available packages'
+    : 'Search for a mailbox by number or tenant name to begin';
+
   return (
     <div 
       data-testid="app-mailbox-selection-card"
@@ -35,13 +46,13 @@ export function MailboxSelectionCard({
             marginBottom: '0.5rem'
           }}
         >
-          Select Mailbox & Tenant
+          {title}
         </h2>
         <p 
           data-testid="app-mailbox-selection-description"
           style={{ color: '#6b7280', fontSize: '0.875rem' }}
         >
-          Search for a mailbox by number or tenant name to begin
+          {description}
         </p>
       </div>
       <MailboxLookup
@@ -51,6 +62,7 @@ export function MailboxSelectionCard({
         onClearSelection={onClearSelection}
         placeholder="Type mailbox number (e.g., 145) or tenant name..."
         autoFocus={true}
+        view={view}
       />
     </div>
   );

@@ -81,7 +81,7 @@ router.get('/', [
         p.size_category,
         p.notes,
         p.received_at,
-        p.picked_up_at,
+        p.picked_up_at as pickup_date,
         t.mailbox_number,
         t.name as tenant_name,
         t.phone as tenant_phone
@@ -201,7 +201,7 @@ router.get('/mailbox/:mailboxId', [
         p.pickup_by,
         p.notes,
         p.received_at,
-        p.picked_up_at,
+        p.picked_up_at as pickup_date,
         m.mailbox_number,
         t.name as tenant_name,
         t.email as tenant_email,
@@ -245,7 +245,7 @@ router.get('/tracking/:trackingNumber', [
         p.size_category,
         p.notes,
         p.received_at,
-        p.picked_up_at,
+        p.picked_up_at as pickup_date,
         t.mailbox_number,
         t.name as tenant_name,
         t.phone as tenant_phone,
@@ -519,6 +519,84 @@ router.delete('/:id', [
   } catch (err) {
     console.error('Error deleting package:', err);
     res.status(500).json({ error: 'Failed to delete package' });
+  }
+});
+
+/**
+ * GET /api/packages/search
+ * Search packages by date range, mailbox, and status
+ */
+router.get('/search', [
+  query('start_date').optional().isISO8601().withMessage('Start date must be valid ISO date'),
+  query('end_date').optional().isISO8601().withMessage('End date must be valid ISO date'),
+  query('mailbox_id').optional().isInt().withMessage('Mailbox ID must be an integer'),
+  query('status').optional().isIn(['received', 'ready_for_pickup', 'picked_up', 'returned_to_sender']),
+  handleValidationErrors,
+], async (req, res) => {
+  try {
+    const { start_date, end_date, mailbox_id, status } = req.query;
+
+    let whereConditions = ['1=1'];
+    let params = [];
+
+    if (start_date) {
+      whereConditions.push(`p.picked_up_at >= ?`);
+      params.push(start_date);
+    }
+
+    if (end_date) {
+      whereConditions.push(`p.picked_up_at <= ?`);
+      params.push(end_date + ' 23:59:59'); // Include end of day
+    }
+
+    if (mailbox_id) {
+      whereConditions.push(`m.id = ?`);
+      params.push(parseInt(mailbox_id));
+    }
+
+    if (status) {
+      whereConditions.push(`p.status = ?`);
+      params.push(status);
+    }
+
+    const result = await dbQuery(`
+      SELECT 
+        p.id,
+        p.tracking_number,
+        p.tenant_id,
+        p.mailbox_id,
+        p.status,
+        p.high_value,
+        p.pickup_by,
+        p.carrier,
+        p.size_category,
+        p.notes,
+        p.received_at,
+        p.picked_up_at as pickup_date,
+        m.mailbox_number,
+        t.name as tenant_name,
+        t.phone as tenant_phone
+      FROM packages p
+      JOIN tenants t ON p.tenant_id = t.id
+      JOIN mailboxes m ON t.mailbox_id = m.id
+      WHERE ${whereConditions.join(' AND ')}
+      ORDER BY p.picked_up_at DESC
+      LIMIT 500
+    `, params);
+
+    res.json({
+      packages: result.rows,
+      count: result.rows.length,
+      filters: {
+        start_date: start_date || null,
+        end_date: end_date || null,
+        mailbox_id: mailbox_id ? parseInt(mailbox_id) : null,
+        status: status || null,
+      },
+    });
+  } catch (err) {
+    console.error('Error searching packages:', err);
+    res.status(500).json({ error: 'Failed to search packages' });
   }
 });
 

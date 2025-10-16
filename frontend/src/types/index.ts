@@ -43,6 +43,7 @@ export interface Package {
   notes?: string;
   received_at: string;
   picked_up_at?: string;
+  pickup_date?: string; // Alias for picked_up_at from backend
   created_at: string;
   updated_at?: string;
   
@@ -68,6 +69,11 @@ export interface Signature {
   tracking_number?: string;
   mailbox_number?: string;
   tenant_name?: string;
+}
+
+export interface SignatureWithDetails extends Signature {
+  status: string;
+  pickup_date: string;
 }
 
 // API Response types
@@ -140,11 +146,13 @@ export interface PickupResponse {
     signature_ids?: number[];
     staff_initials?: string;
     pickup_timestamp: string;
+    cross_tenant_pickup?: boolean;
   };
   packages: Array<{
     id: number;
     tracking_number: string;
     status: PackageStatus;
+    tenant_name?: string;
   }>;
 }
 
