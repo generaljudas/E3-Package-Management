@@ -156,7 +156,8 @@ export default function MailboxLookup({
 
   // Handle mailbox selection
   const handleMailboxSelect = async (mailbox: Mailbox) => {
-    setInputValue(`${mailbox.mailbox_number} — ${mailbox.default_tenant_name || 'No Default Tenant'}`);
+    // Clear input to allow immediate re-entry of a new mailbox number
+    setInputValue('');
     setShowDropdown(false);
     setSearchResults([]);
     setHighlightedIndex(-1);
@@ -177,7 +178,7 @@ export default function MailboxLookup({
     
     // Notify parent components
     onMailboxSelect(mailbox, defaultTenant || undefined);
-    onValueChange?.(`${mailbox.mailbox_number} — ${mailbox.default_tenant_name || 'No Default Tenant'}`);
+    onValueChange?.('');
   };
 
   // Handle tenant change (when user switches tenant for the selected mailbox)
@@ -185,12 +186,7 @@ export default function MailboxLookup({
     setSelectedTenant(tenant);
     onTenantChange?.(tenant);
     
-    // Update display value
-    if (selectedMailbox) {
-      const displayName = tenant ? tenant.name : 'No Tenant Selected';
-      setInputValue(`${selectedMailbox.mailbox_number} — ${displayName}`);
-      onValueChange?.(`${selectedMailbox.mailbox_number} — ${displayName}`);
-    }
+    // Note: Input value remains clear to allow immediate re-entry
   };
 
   // Handle default tenant change
@@ -213,9 +209,6 @@ export default function MailboxLookup({
 
       if (defaultTenant && (!selectedTenant || selectedTenant.id === tenantId)) {
         setSelectedTenant(defaultTenant);
-        const displayValue = `${updatedMailbox.mailbox_number} — ${defaultTenant.name}`;
-        setInputValue(displayValue);
-        onValueChange?.(displayValue);
         onTenantChange?.(defaultTenant);
       }
 
