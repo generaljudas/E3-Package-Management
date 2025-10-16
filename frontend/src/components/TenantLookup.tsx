@@ -1,10 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import type { Mailbox, Tenant } from '../types';
+import type { Tenant } from '../types';
 import { api } from '../services/api';
 
-interface MailboxLookupProps {
-  onMailboxSelect: (mailbox: Mailbox, defaultTenant?: Tenant) => void;
-  onTenantChange?: (tenant: Tenant | null) => void;
+interface TenantLookupProps {
+  onTenantSelect: (tenant: Tenant) => void;
   placeholder?: string;
   disabled?: boolean;
   autoFocus?: boolean;
@@ -13,8 +12,8 @@ interface MailboxLookupProps {
   onValueChange?: (value: string) => void;
 }
 
-interface MailboxCache {
-  mailboxes: Mailbox[];
+interface TenantCache {
+  tenants: Tenant[];
   lastFetched: number;
 }
 
@@ -40,7 +39,7 @@ export default function TenantLookup({
 
   const inputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Load tenant cache on component mount
   useEffect(() => {
@@ -70,7 +69,7 @@ export default function TenantLookup({
         return;
       }
 
-  console.log('Loading tenant cache...');
+    console.log('Loading tenant cache...');
       const startTime = performance.now();
       
       const response = await api.tenant.getAll();
@@ -82,8 +81,8 @@ export default function TenantLookup({
       };
 
   console.log(`Tenant cache loaded: ${response.tenants.length} tenants in ${Math.round(duration)}ms`);
-    } catch (err) {
-  console.error('Failed to load tenant cache:', err);
+    } catch (error) {
+      console.error('Failed to load tenant cache:', error);
       setError('Failed to load tenant data');
     }
   };
@@ -99,18 +98,24 @@ export default function TenantLookup({
     const startTime = performance.now();
 
     const results = tenantCache.tenants
-      .filter(tenant => 
-        tenant.mailbox_number.toLowerCase().includes(searchTerm) ||
-        tenant.name.toLowerCase().includes(searchTerm)
-      )
+      .filter((tenant) => {
+        const mailboxNumber = (tenant.mailbox_number ?? '').toLowerCase();
+        return (
+          mailboxNumber.includes(searchTerm) ||
+          tenant.name.toLowerCase().includes(searchTerm)
+        );
+      })
       .sort((a, b) => {
+        const mailboxA = (a.mailbox_number ?? '').toLowerCase();
+        const mailboxB = (b.mailbox_number ?? '').toLowerCase();
+
         // Exact mailbox number match first
-        if (a.mailbox_number.toLowerCase() === searchTerm) return -1;
-        if (b.mailbox_number.toLowerCase() === searchTerm) return 1;
+        if (mailboxA === searchTerm) return -1;
+        if (mailboxB === searchTerm) return 1;
         
         // Mailbox number starts with query
-        const aMailboxStarts = a.mailbox_number.toLowerCase().startsWith(searchTerm);
-        const bMailboxStarts = b.mailbox_number.toLowerCase().startsWith(searchTerm);
+        const aMailboxStarts = mailboxA.startsWith(searchTerm);
+        const bMailboxStarts = mailboxB.startsWith(searchTerm);
         if (aMailboxStarts && !bMailboxStarts) return -1;
         if (!aMailboxStarts && bMailboxStarts) return 1;
         
@@ -120,8 +125,13 @@ export default function TenantLookup({
         if (aNameStarts && !bNameStarts) return -1;
         if (!aNameStarts && bNameStarts) return 1;
         
-        // Sort by mailbox number
-        return parseInt(a.mailbox_number) - parseInt(b.mailbox_number);
+        // Sort by mailbox number numerically when possible, otherwise lexicographically
+        const aNumber = Number.parseInt(a.mailbox_number ?? '', 10);
+        const bNumber = Number.parseInt(b.mailbox_number ?? '', 10);
+        if (!Number.isNaN(aNumber) && !Number.isNaN(bNumber)) {
+          return aNumber - bNumber;
+        }
+        return mailboxA.localeCompare(mailboxB);
       })
       .slice(0, 10); // Limit results for performance
 
@@ -159,12 +169,13 @@ export default function TenantLookup({
 
   // Handle tenant selection
   const handleTenantSelect = (tenant: Tenant) => {
-    setInputValue(`${tenant.mailbox_number} — ${tenant.name}`);
+    const displayMailbox = tenant.mailbox_number ?? 'Unknown';
+    setInputValue(`${displayMailbox} — ${tenant.name}`);
     setShowDropdown(false);
     setSearchResults([]);
     setHighlightedIndex(-1);
     onTenantSelect(tenant);
-    onValueChange?.(`${tenant.mailbox_number} — ${tenant.name}`);
+    onValueChange?.(`${displayMailbox} — ${tenant.name}`);
   };
 
   // Keyboard navigation
@@ -226,7 +237,7 @@ export default function TenantLookup({
         setIsSearching(true);
         const response = await api.tenant.getByMailbox(mailboxNumber);
         handleTenantSelect(response.tenant);
-      } catch (err) {
+      } catch {
         setError(`Mailbox ${mailboxNumber} not found`);
         // Select the input text for easy correction
         inputRef.current?.select();
@@ -303,7 +314,7 @@ export default function TenantLookup({
               <div className="flex justify-between items-center">
                 <div>
                   <div className="font-medium">
-                    Mailbox {tenant.mailbox_number} — {tenant.name}
+                    Mailbox {tenant.mailbox_number ?? 'Unknown'} — {tenant.name}
                   </div>
                   {tenant.phone && (
                     <div className="text-sm text-gray-500">

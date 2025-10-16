@@ -1,8 +1,20 @@
 # E3 Package Manager - Complete System Documentation
 
-**Version:** 1.0.0  
-**Last Updated:** October 10, 2025  
+**Version:** 1.1.0-beta  
+**Last Updated:** October 16, 2025  
 **Platform:** macOS (Apple Silicon)
+
+
+## Beta Direction Snapshot (October 2025)
+
+The current beta cycle doubles down on reliability and maintainability ahead of performance work. Highlights:
+
+- **Shared mailbox caching:** `useMailboxCache` centralises mailbox hydration, in-memory caching, and cache invalidation so both `MailboxLookup` and management tooling share a single source of truth.
+- **Typed offline + API boundaries:** Intake, pickup, and offline hooks now rely on explicit payload types (`OfflinePackageIntakePayload`, `PickupRequest`, `PickupResponse`, etc.), eliminating `any` usage and making queue replay safer.
+- **Tenant management cohesion:** `MailboxTenantManagement` and `MailboxLookup` both reuse typed tenant API helpers, keeping default-tenant updates and cache invalidation consistent across views.
+- **Performance groundwork:** Debounced search now delegates to the shared cache helper, and the typed service layer unlocks upcoming instrumentation without further refactors.
+
+Near-term beta goals include profiling mailbox search frequency, expanding offline sync telemetry, and layering in lightweight performance diagnostics using the new shared utilities.
 
 ---
 
@@ -22,6 +34,8 @@
 12. [Deployment Checklist](#deployment-checklist)
 13. [Known Issues & Workarounds](#known-issues--workarounds)
 14. [Future Enhancement Ideas](#future-enhancement-ideas)
+
+- [Beta Direction Snapshot (October 2025)](#beta-direction-snapshot-october-2025)
 
 ---
 
@@ -567,6 +581,7 @@ frontend/
 │   │   └── TestIdOverlay.tsx      # Dev-only overlay to visualize data-testids
 │   ├── hooks/
 │   │   ├── useOffline.ts          # Offline state management
+│   │   ├── useMailboxCache.ts     # Shared mailbox cache + search helpers
 │   │   └── useFocus.ts            # Keyboard navigation
 │   ├── services/
 │   │   ├── api.ts                 # API client with error handling

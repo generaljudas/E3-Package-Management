@@ -20,7 +20,7 @@ export interface Tenant {
   name: string;
   phone?: string;
   email?: string;
-  contact_info?: Record<string, any>;
+  contact_info?: Record<string, unknown>;
   notes?: string;
   active: boolean;
   created_at: string;
@@ -56,6 +56,7 @@ export interface Package {
 
 export type PackageStatus = 'received' | 'ready_for_pickup' | 'picked_up' | 'returned_to_sender';
 export type SizeCategory = 'small' | 'medium' | 'large' | 'oversized';
+export type CarrierCode = 'UPS' | 'FedEx' | 'USPS';
 
 export interface Signature {
   id: number;
@@ -92,6 +93,12 @@ export interface MailboxesResponse {
 
 export interface MailboxSearchResponse {
   mailboxes: Mailbox[];
+  query: string;
+  count: number;
+}
+
+export interface TenantSearchResponse {
+  tenants: Array<Pick<Tenant, 'id' | 'mailbox_number' | 'name' | 'phone' | 'email'>>;
   query: string;
   count: number;
 }
@@ -180,11 +187,7 @@ export interface AppState {
   selectedTenant: Tenant | null;
   availableTenants: Tenant[];
   scannerActive: boolean;
-  offlineQueue: Array<{
-    type: 'package_intake' | 'pickup';
-    data: any;
-    timestamp: string;
-  }>;
+  offlineQueue: OfflineQueueItem[];
 }
 
 // Barcode scanner types
@@ -329,3 +332,80 @@ export interface PerformanceMetric {
   timestamp: string;
   success: boolean;
 }
+
+export interface PickupEvent {
+  id: number;
+  pickup_person_name: string;
+  signature_required: boolean;
+  signature_captured: boolean;
+  notes: string | null;
+  staff_initials: string | null;
+  pickup_timestamp: string;
+  package_id: number;
+  tracking_number: string;
+  high_value: boolean;
+  mailbox_number: string;
+  tenant_name: string;
+  has_signature: 0 | 1;
+}
+
+export interface PickupFilters {
+  tenant_id: number | null;
+  days: number;
+}
+
+export interface PaginationSummary {
+  limit: number;
+  offset: number;
+}
+
+export interface PackageSearchFilters {
+  start_date: string | null;
+  end_date: string | null;
+  mailbox_id: number | null;
+  status: string | null;
+}
+
+export interface PackageSearchResponse {
+  packages: Package[];
+  count: number;
+  filters: PackageSearchFilters;
+}
+
+export interface SignatureCapturePayload {
+  package_id: number;
+  signature_data: string;
+  captured_at?: string;
+}
+
+export interface OfflinePackageIntakePayload {
+  tracking_number: string;
+  tenant_id: number | null;
+  mailbox_id?: number;
+  carrier?: CarrierCode;
+}
+
+export type OfflineOperation =
+  | {
+      type: 'package_intake';
+      data: OfflinePackageIntakePayload;
+      mailboxId: string;
+      tenantId?: string;
+    }
+  | {
+      type: 'package_pickup';
+      data: PickupRequest;
+      mailboxId: string;
+      tenantId?: string;
+    }
+  | {
+      type: 'signature_capture';
+      data: SignatureCapturePayload;
+      mailboxId: string;
+      tenantId?: string;
+    };
+
+export type OfflineQueueItem = OfflineOperation & {
+  id: string;
+  timestamp: number;
+};

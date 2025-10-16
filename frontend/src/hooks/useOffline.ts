@@ -4,6 +4,11 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { offlineService, type CachedMailbox } from '../services/offlineService';
+import type {
+  OfflinePackageIntakePayload,
+  PickupRequest,
+  SignatureCapturePayload,
+} from '../types';
 
 export interface OfflineStatus {
   isOnline: boolean;
@@ -107,7 +112,7 @@ export function useOfflineOperations() {
     };
   }, []);
 
-  const queuePackageIntake = useCallback((packageData: any, mailboxId: string, tenantId?: string) => {
+  const queuePackageIntake = useCallback((packageData: OfflinePackageIntakePayload, mailboxId: string, tenantId?: string) => {
     return offlineService.queueOperation({
       type: 'package_intake',
       data: packageData,
@@ -116,7 +121,7 @@ export function useOfflineOperations() {
     });
   }, []);
 
-  const queuePackagePickup = useCallback((pickupData: any, mailboxId: string) => {
+  const queuePackagePickup = useCallback((pickupData: PickupRequest, mailboxId: string) => {
     return offlineService.queueOperation({
       type: 'package_pickup',
       data: pickupData,
@@ -124,11 +129,12 @@ export function useOfflineOperations() {
     });
   }, []);
 
-  const queueSignatureCapture = useCallback((signatureData: any, mailboxId: string) => {
+  const queueSignatureCapture = useCallback((signatureData: SignatureCapturePayload, mailboxId: string, tenantId?: string) => {
     return offlineService.queueOperation({
       type: 'signature_capture',
       data: signatureData,
       mailboxId,
+      tenantId,
     });
   }, []);
 

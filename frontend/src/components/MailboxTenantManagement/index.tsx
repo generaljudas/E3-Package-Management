@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import type { Mailbox, Tenant } from '../../types';
 import { useMailboxes } from './hooks/useMailboxes';
 import { useTenants } from './hooks/useTenants';
@@ -38,13 +38,27 @@ const MailboxTenantManagement: React.FC<MailboxTenantManagementProps> = ({
   // Custom hooks
   const mailboxHook = useMailboxes(onError, onSuccess);
   const tenantHook = useTenants(onError, onSuccess);
+  const { loadTenants } = tenantHook;
+  const { resetForm: resetTenantForm } = tenantHook;
+  const selectedMailboxId = viewState.selectedMailbox?.id;
+
+  const handleBackToMailbox = useCallback(() => {
+    resetTenantForm();
+    setViewState((prev) => ({
+      ...prev,
+      mode: 'view-mailbox',
+      selectedTenant: null,
+    }));
+  }, [resetTenantForm]);
 
   // Load tenants when a mailbox is selected
   useEffect(() => {
-    if (viewState.selectedMailbox) {
-      tenantHook.loadTenants(viewState.selectedMailbox.id);
+    if (!selectedMailboxId) {
+      return;
     }
-  }, [viewState.selectedMailbox?.id]);
+
+    void loadTenants(selectedMailboxId);
+  }, [selectedMailboxId, loadTenants]);
 
   // Register back handler with parent
   useEffect(() => {
@@ -76,7 +90,7 @@ const MailboxTenantManagement: React.FC<MailboxTenantManagementProps> = ({
     };
 
     onRegisterBackHandler(handleBack);
-  }, [viewState.mode, onRegisterBackHandler]);
+  }, [viewState.mode, onRegisterBackHandler, handleBackToMailbox]);
 
   // Navigation handlers
   const handleViewMailbox = (mailbox: Mailbox) => {
@@ -105,7 +119,7 @@ const MailboxTenantManagement: React.FC<MailboxTenantManagementProps> = ({
   };
 
   const handleShowAddTenant = () => {
-    tenantHook.resetForm();
+    resetTenantForm();
     setViewState({ ...viewState, mode: 'add-tenant' });
   };
 
@@ -206,7 +220,7 @@ const MailboxTenantManagement: React.FC<MailboxTenantManagementProps> = ({
       }
     }
     
-    tenantHook.resetForm();
+  resetTenantForm();
     setViewState({ ...viewState, mode: 'view-mailbox' });
     await tenantHook.loadTenants(viewState.selectedMailbox.id);
   };
@@ -216,7 +230,7 @@ const MailboxTenantManagement: React.FC<MailboxTenantManagementProps> = ({
     if (!viewState.selectedTenant || !viewState.selectedMailbox) return;
 
     await tenantHook.updateTenant(viewState.selectedTenant.id, tenantHook.tenantForm);
-    tenantHook.resetForm();
+    resetTenantForm();
     setViewState({ ...viewState, mode: 'view-mailbox', selectedTenant: null });
     await tenantHook.loadTenants(viewState.selectedMailbox.id);
   };
@@ -229,11 +243,6 @@ const MailboxTenantManagement: React.FC<MailboxTenantManagementProps> = ({
 
     await tenantHook.deleteTenant(tenant.id);
     await tenantHook.loadTenants(viewState.selectedMailbox.id);
-  };
-
-  const handleBackToMailbox = () => {
-    tenantHook.resetForm();
-    setViewState({ ...viewState, mode: 'view-mailbox', selectedTenant: null });
   };
 
   // Render appropriate view based on state

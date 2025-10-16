@@ -4,9 +4,14 @@
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
 
 class ApiError extends Error {
-  constructor(public status: number, message: string, public details?: any) {
+  public status: number;
+  public details?: unknown;
+
+  constructor(status: number, message: string, details?: unknown) {
     super(message);
     this.name = 'ApiError';
+    this.status = status;
+    this.details = details;
   }
 }
 
@@ -248,9 +253,9 @@ export const pickupApi = {
     
     const query = searchParams.toString();
     return apiRequest<{
-      pickup_events: import('../types').PickupEvent[];
-      filters: any;
-      pagination: any;
+  pickup_events: import('../types').PickupEvent[];
+  filters: import('../types').PickupFilters;
+  pagination: import('../types').PaginationSummary;
     }>(`/pickups${query ? `?${query}` : ''}`);
   },
 
@@ -449,11 +454,9 @@ export async function searchPackagesByDateRange(
     searchParams.append('status', status);
   }
   
-  const response = await apiRequest<{
-    packages: import('../types').Package[];
-    count: number;
-    filters: any;
-  }>(`/packages/search?${searchParams.toString()}`);
+  const response = await apiRequest<import('../types').PackageSearchResponse>(
+    `/packages/search?${searchParams.toString()}`
+  );
   
   return response.packages;
 }
