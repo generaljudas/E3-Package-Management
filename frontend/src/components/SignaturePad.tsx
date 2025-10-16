@@ -54,7 +54,7 @@ export const SignaturePad: React.FC<SignaturePadProps> = ({
       setIsEmpty(true);
       onSignatureChange?.(null);
     }
-  }, [width, height, backgroundColor, clearOnStart]);
+  }, [width, height, backgroundColor, clearOnStart, onSignatureChange]);
 
   // Update stroke style without clearing existing drawing when pen style changes.
   useEffect(() => {

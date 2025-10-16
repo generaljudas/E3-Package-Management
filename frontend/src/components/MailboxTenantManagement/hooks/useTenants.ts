@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import type { Tenant } from '../../../types';
 import { tenantApi } from '../../../services/api';
 
@@ -36,7 +36,7 @@ export const useTenants = (
   const [loading, setLoading] = useState(false);
   const [tenantForm, setTenantForm] = useState<TenantFormData>(initialFormState);
 
-  const loadTenants = async (mailboxId: number) => {
+  const loadTenants = useCallback(async (mailboxId: number) => {
     setLoading(true);
     try {
       const response = await tenantApi.getByMailboxId(mailboxId);
@@ -47,9 +47,13 @@ export const useTenants = (
     } finally {
       setLoading(false);
     }
-  };
+  }, [onError]);
 
-  const createTenant = async (mailboxId: number, mailboxNumber: string, data: TenantFormData): Promise<Tenant | null> => {
+  const createTenant = useCallback(async (
+    mailboxId: number,
+    mailboxNumber: string,
+    data: TenantFormData
+  ): Promise<Tenant | null> => {
     if (!data.name.trim()) {
       onError?.('Please enter a tenant name');
       return null;
@@ -73,9 +77,9 @@ export const useTenants = (
     } finally {
       setLoading(false);
     }
-  };
+  }, [onError, onSuccess]);
 
-  const updateTenant = async (tenantId: number, data: TenantFormData) => {
+  const updateTenant = useCallback(async (tenantId: number, data: TenantFormData) => {
     if (!data.name.trim()) {
       onError?.('Please enter a tenant name');
       return;
@@ -96,9 +100,9 @@ export const useTenants = (
     } finally {
       setLoading(false);
     }
-  };
+  }, [onError, onSuccess]);
 
-  const deleteTenant = async (tenantId: number) => {
+  const deleteTenant = useCallback(async (tenantId: number) => {
     setLoading(true);
     try {
       await tenantApi.deactivate(tenantId);
@@ -110,9 +114,9 @@ export const useTenants = (
     } finally {
       setLoading(false);
     }
-  };
+  }, [onError, onSuccess]);
 
-  const setDefaultTenant = async (mailboxId: number, tenantId: number) => {
+  const setDefaultTenant = useCallback(async (mailboxId: number, tenantId: number) => {
     setLoading(true);
     try {
       await tenantApi.setDefaultTenant(mailboxId, tenantId);
@@ -124,19 +128,19 @@ export const useTenants = (
     } finally {
       setLoading(false);
     }
-  };
+  }, [onError, onSuccess]);
 
-  const resetForm = () => {
+  const resetForm = useCallback(() => {
     setTenantForm(initialFormState);
-  };
+  }, []);
 
-  const populateForm = (tenant: Tenant) => {
+  const populateForm = useCallback((tenant: Tenant) => {
     setTenantForm({
       name: tenant.name,
       email: tenant.email || '',
       phone: tenant.phone || '',
     });
-  };
+  }, []);
 
   return {
     tenants,

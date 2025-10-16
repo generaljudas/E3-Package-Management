@@ -1,5 +1,10 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import type { Mailbox, Tenant } from '../types';
+import { useMailboxCache, invalidateMailboxCache } from '../hooks/useMailboxCache';
+import { tenantApi } from '../services/api';
+
+// eslint-disable-next-line react-refresh/only-export-components
+export { invalidateMailboxCache } from '../hooks/useMailboxCache';
 
 interface MailboxLookupProps {
   onMailboxSelect: (mailbox: Mailbox, defaultTenant?: Tenant) => void;
@@ -15,23 +20,6 @@ interface MailboxLookupProps {
   view?: 'intake' | 'pickup'; // Add view prop to conditionally show tenant selection
 }
 
-interface MailboxCache {
-  mailboxes: Mailbox[];
-  lastFetched: number;
-}
-
-// Cache for instant lookups (in-memory for speed)
-let mailboxCache: MailboxCache | null = null;
-let mailboxCachePromise: Promise<Mailbox[]> | null = null;
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
-
-// Export function to invalidate cache (called after creating/deleting mailboxes)
-// eslint-disable-next-line react-refresh/only-export-components
-export function invalidateMailboxCache() {
-  console.log('Invalidating mailbox cache...');
-  mailboxCache = null;
-  mailboxCachePromise = null;
-}
 
 export default function MailboxLookup({
   onMailboxSelect,
@@ -49,7 +37,6 @@ export default function MailboxLookup({
   const [inputValue, setInputValue] = useState(value);
   const [searchResults, setSearchResults] = useState<Mailbox[]>([]);
   const [isSearching, setIsSearching] = useState(false);
-  const [isCacheLoading, setIsCacheLoading] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const [error, setError] = useState<string | null>(null);
@@ -76,127 +63,51 @@ export default function MailboxLookup({
     }
   }, [autoFocus]);
 
-  // Load and cache all mailboxes for instant lookup
-  const loadMailboxCache = useCallback(async (): Promise<Mailbox[]> => {
-    try {
-      // Serve cached data when fresh
-      if (
-        mailboxCache &&
-        Date.now() - mailboxCache.lastFetched < CACHE_DURATION
-      ) {
-        return mailboxCache.mailboxes;
-      }
+  const {
+    searchMailboxes: searchMailboxCache,
+    findMailboxByNumber,
+    loadMailboxes,
+    isLoading: isCacheLoading,
+  } = useMailboxCache();
 
-      if (mailboxCachePromise) {
-        return mailboxCachePromise;
-      }
-
-      setIsCacheLoading(true);
-      console.log('Loading mailbox cache...');
-      const startTime = performance.now();
-
-      mailboxCachePromise = (async () => {
-        const response = await fetch('http://localhost:3001/api/mailboxes');
-        if (!response.ok) {
-          throw new Error(`Failed to fetch mailboxes: ${response.status}`);
-        }
-
-        const data = await response.json();
-        const mailboxes = data.mailboxes || [];
-
-        const duration = performance.now() - startTime;
-
-        mailboxCache = {
-          mailboxes: mailboxes,
-          lastFetched: Date.now(),
-        };
-
-        console.log(`Mailbox cache loaded: ${mailboxes.length} mailboxes in ${Math.round(duration)}ms`);
-
-        return mailboxes;
-      })();
-
-      const loaded = await mailboxCachePromise;
-      setIsCacheLoading(false);
-      mailboxCachePromise = null;
-      return loaded;
-    } catch (err) {
+  useEffect(() => {
+    loadMailboxes().catch((err) => {
       console.error('Failed to load mailbox cache:', err);
       setError('Failed to load mailbox data');
-      mailboxCache = null;
-      setIsCacheLoading(false);
-      mailboxCachePromise = null;
-      throw err;
-    }
-  }, []);
-
-  // Load mailbox cache on component mount
-  useEffect(() => {
-    loadMailboxCache().catch(() => {
-      // Errors handled in loader; keep UI responsive
     });
-  }, [loadMailboxCache]);
+  }, [loadMailboxes]);
 
-  // Instant search through cached mailboxes
-  const searchMailboxes = useCallback(async (query: string) => {
+  const triggerSearch = useCallback((query: string) => {
     const trimmedQuery = query.trim();
-
-    if (trimmedQuery.length === 0) {
-      setSearchResults([]);
-      return;
-    }
-
     const searchId = latestSearchIdRef.current + 1;
     latestSearchIdRef.current = searchId;
 
-    try {
-      const mailboxes = await loadMailboxCache();
-
-      const searchTerm = trimmedQuery.toLowerCase();
-      const startTime = performance.now();
-
-      const results = mailboxes
-        .filter(mailbox => 
-          mailbox.mailbox_number.toLowerCase().includes(searchTerm) ||
-          (mailbox.default_tenant_name && mailbox.default_tenant_name.toLowerCase().includes(searchTerm))
-        )
-        .sort((a, b) => {
-          // Exact mailbox number match first
-          if (a.mailbox_number.toLowerCase() === searchTerm) return -1;
-          if (b.mailbox_number.toLowerCase() === searchTerm) return 1;
-          
-          // Mailbox number starts with query
-          const aMailboxStarts = a.mailbox_number.toLowerCase().startsWith(searchTerm);
-          const bMailboxStarts = b.mailbox_number.toLowerCase().startsWith(searchTerm);
-          if (aMailboxStarts && !bMailboxStarts) return -1;
-          if (!aMailboxStarts && bMailboxStarts) return 1;
-          
-          // Sort numerically when possible, otherwise lexicographically
-          const aNumber = parseInt(a.mailbox_number, 10);
-          const bNumber = parseInt(b.mailbox_number, 10);
-          if (!Number.isNaN(aNumber) && !Number.isNaN(bNumber)) {
-            return aNumber - bNumber;
-          }
-          return a.mailbox_number.localeCompare(b.mailbox_number);
-        })
-        .slice(0, 10); // Limit results for performance
-
-      const duration = performance.now() - startTime;
-
-      if (duration > 10) {
-        console.warn(`Slow mailbox search (${Math.round(duration)}ms) for query: "${trimmedQuery}"`);
-      }
-
-      if (latestSearchIdRef.current === searchId) {
-        setSearchResults(results);
-      }
-    } catch (err) {
-      console.error('Mailbox search failed:', err);
-      if (latestSearchIdRef.current === searchId) {
-        setSearchResults([]);
-      }
+    if (trimmedQuery.length === 0) {
+      setSearchResults([]);
+      setIsSearching(false);
+      return;
     }
-  }, [loadMailboxCache]);
+
+    setIsSearching(true);
+
+    searchMailboxCache(query)
+      .then((results) => {
+        if (latestSearchIdRef.current === searchId) {
+          setSearchResults(results);
+        }
+      })
+      .catch((err) => {
+        console.error('Mailbox search failed:', err);
+        if (latestSearchIdRef.current === searchId) {
+          setSearchResults([]);
+        }
+      })
+      .finally(() => {
+        if (latestSearchIdRef.current === searchId) {
+          setIsSearching(false);
+        }
+      });
+  }, [searchMailboxCache]);
 
   // Handle input changes with debouncing
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -223,32 +134,25 @@ export default function MailboxLookup({
     }
 
     // Debounce search for better performance
-    searchTimeoutRef.current = setTimeout(() => {
-      void searchMailboxes(newValue);
+    searchTimeoutRef.current = window.setTimeout(() => {
+      triggerSearch(newValue);
       setShowDropdown(newValue.length > 0);
       setHighlightedIndex(-1);
     }, 50); // Very short debounce for instant feel
   };
 
-  // Load tenants for selected mailbox
-  const loadTenantsForMailbox = async (mailboxId: number) => {
+  const loadTenantsForMailbox = useCallback(async (mailboxId: number) => {
     try {
-      // Call actual API to get tenants for this mailbox
-      const response = await fetch(`http://localhost:3001/api/tenants?mailbox_id=${mailboxId}`);
-      if (!response.ok) {
-        throw new Error(`Failed to fetch tenants: ${response.status}`);
-      }
-      
-      const data = await response.json();
-      const tenants = data.tenants || [];
+      const response = await tenantApi.getByMailboxId(mailboxId);
+      const tenants = response.tenants ?? [];
       setAvailableTenants(tenants);
-      
       return tenants;
     } catch (err) {
       console.error('Failed to load tenants for mailbox:', err);
+      setError('Failed to load tenant data');
       return [];
     }
-  };
+  }, []);
 
   // Handle mailbox selection
   const handleMailboxSelect = async (mailbox: Mailbox) => {
@@ -297,32 +201,26 @@ export default function MailboxLookup({
     setPendingDefaultChange(tenantId);
 
     try {
-      // Update on backend (by mailbox number to avoid missing ID issues in dev)
-      const response = await fetch(`http://localhost:3001/api/tenants/mailboxes/by-number/${encodeURIComponent(selectedMailbox.mailbox_number)}/default-tenant`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ default_tenant_id: tenantId, tenant_name: selectedTenant?.name || undefined }),
-      });
+      await tenantApi.setDefaultTenant(selectedMailbox.id, tenantId);
 
-      if (!response.ok) {
-        throw new Error(`Failed to update default tenant: ${response.status}`);
-      }
-
-      // Update local state
-      const updatedMailbox = { ...selectedMailbox, default_tenant_id: tenantId };
+      const defaultTenant = availableTenants.find((tenant) => tenant.id === tenantId) ?? null;
+      const updatedMailbox: Mailbox = {
+        ...selectedMailbox,
+        default_tenant_id: tenantId,
+        default_tenant_name: defaultTenant?.name ?? selectedMailbox.default_tenant_name,
+      };
       setSelectedMailbox(updatedMailbox);
 
-      // Update cache
-      if (mailboxCache) {
-        const mailboxIndex = mailboxCache.mailboxes.findIndex(m => m.id === selectedMailbox.id);
-        if (mailboxIndex >= 0) {
-          mailboxCache.mailboxes[mailboxIndex] = updatedMailbox;
-        }
+      if (defaultTenant && (!selectedTenant || selectedTenant.id === tenantId)) {
+        setSelectedTenant(defaultTenant);
+        const displayValue = `${updatedMailbox.mailbox_number} — ${defaultTenant.name}`;
+        setInputValue(displayValue);
+        onValueChange?.(displayValue);
+        onTenantChange?.(defaultTenant);
       }
 
-      // Show success notification
+      invalidateMailboxCache();
+
       const successMessage = `Default tenant updated for mailbox ${selectedMailbox.mailbox_number}`;
       onDefaultTenantUpdate?.(true, successMessage);
 
@@ -394,9 +292,7 @@ export default function MailboxLookup({
       try {
         setIsSearching(true);
 
-        // Find mailbox in cache
-        const cache = await loadMailboxCache();
-        const mailbox = cache.find(m => m.mailbox_number === mailboxNumber);
+        const mailbox = await findMailboxByNumber(mailboxNumber);
         if (mailbox) {
           handleMailboxSelect(mailbox);
         } else {
@@ -445,7 +341,7 @@ export default function MailboxLookup({
             onKeyDown={handleKeyDown}
             onFocus={() => {
               if (inputValue.length > 0) {
-                void searchMailboxes(inputValue);
+                triggerSearch(inputValue);
                 setShowDropdown(true);
               }
             }}

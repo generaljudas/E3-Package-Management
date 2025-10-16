@@ -6,12 +6,17 @@
 import React, { useState, useEffect, useRef } from 'react';
 import BarcodeScanner, { type BarcodeScanResult } from './BarcodeScanner';
 import { useOfflineOperations } from '../hooks/useOffline';
-import type { Mailbox, Tenant } from '../types';
+import type {
+  Mailbox,
+  Tenant,
+  OfflinePackageIntakePayload,
+  CarrierCode,
+} from '../types';
 
 interface PackageIntakeProps {
   selectedMailbox: Mailbox;
   selectedTenant?: Tenant | null;
-  onSuccess?: (packageData: any) => void;
+  onSuccess?: (packageData: PackageIntakeSuccessPayload) => void;
   onError?: (error: string) => void;
 }
 
@@ -19,6 +24,11 @@ interface PackageIntakeProps {
 // Mailbox and tenant come from context
 interface PackageFormData {
   tracking_number: string;
+}
+
+interface PackageIntakeSuccessPayload {
+  batch: OfflinePackageIntakePayload[];
+  offline?: boolean;
 }
 
 
@@ -50,7 +60,7 @@ export const PackageIntake: React.FC<PackageIntakeProps> = ({
   // - FedEx: starts with "9"
   // - USPS: 20-22 digits (all numeric)
   // If multiple rules match (e.g., starts with 9 and 20-22 digits), return undefined (not certain)
-  const detectCarrier = (raw: string): 'UPS' | 'FedEx' | 'USPS' | undefined => {
+  const detectCarrier = (raw: string): CarrierCode | undefined => {
     const normalized = raw.replace(/[^A-Za-z0-9]/g, '');
     const upper = normalized.toUpperCase();
     const isDigits = /^[0-9]+$/.test(normalized);
@@ -60,7 +70,7 @@ export const PackageIntake: React.FC<PackageIntakeProps> = ({
     const fedex = upper.startsWith('9');
     const usps = isDigits && len >= 20 && len <= 22;
 
-    const matches = [ups ? 'UPS' : null, fedex ? 'FedEx' : null, usps ? 'USPS' : null].filter(Boolean) as Array<'UPS'|'FedEx'|'USPS'>;
+    const matches = [ups ? 'UPS' : null, fedex ? 'FedEx' : null, usps ? 'USPS' : null].filter(Boolean) as CarrierCode[];
     if (matches.length === 1) return matches[0];
     return undefined;
   };
@@ -122,6 +132,8 @@ export const PackageIntake: React.FC<PackageIntakeProps> = ({
       return;
     }
 
+    const tenantId = selectedTenant.id;
+
     // Build the effective batch: use existing batch or the current input if batch is empty
     const trimmedInput = formData.tracking_number.trim();
     const effectiveBatch = batch.length > 0 ? batch : (trimmedInput ? [trimmedInput] : []);
@@ -136,11 +148,12 @@ export const PackageIntake: React.FC<PackageIntakeProps> = ({
       // SIMPLIFIED: Only send tracking_number and tenant_id
       // Backend will auto-populate mailbox_id from tenant
       // All other fields get backend defaults
-      const batchWithMeta = effectiveBatch.map(trackingNumber => {
+      const batchWithMeta: OfflinePackageIntakePayload[] = effectiveBatch.map((trackingNumber) => {
         const carrier = detectCarrier(trackingNumber);
-        const payload: any = {
+        const payload: OfflinePackageIntakePayload = {
           tracking_number: trackingNumber,
-          tenant_id: selectedTenant?.id || null,
+          tenant_id: tenantId,
+          mailbox_id: selectedMailbox.id,
         };
         if (carrier) payload.carrier = carrier;
         return payload;
@@ -174,7 +187,7 @@ export const PackageIntake: React.FC<PackageIntakeProps> = ({
       } else {
         // Queue for offline sync
         for (const packageData of batchWithMeta) {
-          queuePackageIntake(packageData, selectedMailbox.id.toString(), selectedTenant?.id?.toString());
+          queuePackageIntake(packageData, selectedMailbox.id.toString(), tenantId.toString());
         }
         onSuccess?.({ batch: batchWithMeta, offline: true });
       }

@@ -3,13 +3,16 @@
  * Handles caching tenant data and queueing operations when offline
  */
 
-export interface QueuedOperation {
-  id: string;
-  type: 'package_intake' | 'package_pickup' | 'signature_capture';
-  data: any;
-  timestamp: number;
-  mailboxId: string;
-  tenantId?: string;
+import type {
+  OfflineQueueItem,
+  OfflineOperation,
+  OfflinePackageIntakePayload,
+  PickupRequest,
+  SignatureCapturePayload,
+} from '../types';
+
+function assertNever(value: never): never {
+  throw new Error(`Unknown operation type encountered during offline sync: ${String(value)}`);
 }
 
 export interface CachedTenant {
@@ -36,7 +39,7 @@ class OfflineService {
   };
 
   private readonly CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours
-  private operationQueue: QueuedOperation[] = [];
+  private operationQueue: OfflineQueueItem[] = [];
   private isOnline = navigator.onLine;
 
   constructor() {
@@ -150,8 +153,8 @@ class OfflineService {
   /**
    * Queue an operation for later sync when online
    */
-  queueOperation(operation: Omit<QueuedOperation, 'id' | 'timestamp'>) {
-    const queuedOp: QueuedOperation = {
+  queueOperation(operation: OfflineOperation) {
+    const queuedOp: OfflineQueueItem = {
       ...operation,
       id: `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       timestamp: Date.now(),
@@ -176,7 +179,7 @@ class OfflineService {
   /**
    * Get all queued operations
    */
-  getQueuedOperations(): QueuedOperation[] {
+  getQueuedOperations(): OfflineQueueItem[] {
     return [...this.operationQueue];
   }
 
@@ -209,7 +212,7 @@ class OfflineService {
     }
   }
 
-  private async syncOperation(operation: QueuedOperation) {
+  private async syncOperation(operation: OfflineQueueItem) {
     const baseUrl = 'http://localhost:3001/api';
 
     switch (operation.type) {
@@ -217,32 +220,31 @@ class OfflineService {
         await fetch(`${baseUrl}/packages`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(operation.data),
+          body: JSON.stringify(operation.data as OfflinePackageIntakePayload),
         });
-        break;
+        return;
 
       case 'package_pickup':
         await fetch(`${baseUrl}/pickups`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(operation.data),
+          body: JSON.stringify(operation.data as PickupRequest),
         });
-        break;
+        return;
 
       case 'signature_capture':
         await fetch(`${baseUrl}/signatures`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(operation.data),
+          body: JSON.stringify(operation.data as SignatureCapturePayload),
         });
-        break;
-
-      default:
-        throw new Error(`Unknown operation type: ${operation.type}`);
+        return;
     }
+
+    assertNever(operation);
   }
 
-  private notifyOperationQueued(operation: QueuedOperation) {
+  private notifyOperationQueued(operation: OfflineQueueItem) {
     // Show toast notification
     const event = new CustomEvent('offline-operation-queued', {
       detail: { operation, count: this.operationQueue.length }

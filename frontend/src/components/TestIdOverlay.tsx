@@ -35,7 +35,9 @@ const TestIdOverlay: React.FC = () => {
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY, enabled ? '1' : '0');
-    } catch {}
+    } catch (error) {
+      console.warn('Failed to persist test ID overlay setting:', error);
+    }
   }, [enabled]);
 
   useEffect(() => {

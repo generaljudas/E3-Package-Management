@@ -179,7 +179,7 @@ const Tools: React.FC<ToolsProps> = ({ selectedMailbox, selectedTenant, onError,
             <MailboxTenantManagement
               onError={(e) => onError?.(e)}
               onSuccess={(message) => onSuccess?.(message)}
-              {...({ onRegisterBackHandler: registerBackHandler } as any)}
+              onRegisterBackHandler={registerBackHandler}
             />
           )}
         </div>

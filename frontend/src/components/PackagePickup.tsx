@@ -6,12 +6,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import SignaturePad, { SignatureVerification, type SignatureData } from './SignaturePad';
 import { useOfflineOperations } from '../hooks/useOffline';
-import type { Mailbox, Tenant } from '../types';
+import type { Mailbox, Tenant, PickupRequest, PickupResponse } from '../types';
 
 interface PackagePickupProps {
   selectedMailbox: Mailbox;
   selectedTenant?: Tenant | null;
-  onSuccess?: (pickupData: any) => void;
+  onSuccess?: (pickupData: PickupSuccessPayload) => void;
   onError?: (error: string) => void;
 }
 
@@ -39,6 +39,10 @@ interface PickupWorkflowState {
   pickupPerson: string;
   idVerified: boolean;
 }
+
+type PickupSuccessPayload =
+  | PickupResponse
+  | (PickupRequest & { queueId: string; offline: true });
 
 // Compact presentation helpers
 const STATUS_SHORT: { [key: string]: string } = {
@@ -176,7 +180,7 @@ export const PackagePickup: React.FC<PackagePickupProps> = ({
     // to pick up all packages for that mailbox
 
     try {
-      const pickupData = {
+      const pickupData: PickupRequest = {
         package_ids: workflow.selectedPackages.map((p) => p.id),
         mailbox_id: selectedMailbox.id,
         tenant_id: selectedTenant?.id, // Optional - allows cross-tenant pickup
