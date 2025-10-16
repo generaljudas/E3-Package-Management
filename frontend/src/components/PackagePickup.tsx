@@ -29,6 +29,7 @@ interface Package {
   pickup_signature?: string | null;
   status: 'received' | 'ready_for_pickup' | 'picked_up' | 'returned' | 'returned_to_sender';
   tenant_id?: number | null;
+  tenant_name?: string | null;
 }
 
 interface PickupWorkflowState {
@@ -99,13 +100,12 @@ export const PackagePickup: React.FC<PackagePickupProps> = ({
       );
     }
 
-    // Tenant filter (if specific tenant selected)
-    if (selectedTenant) {
-      filtered = filtered.filter((pkg) => pkg.tenant_id === selectedTenant.id);
-    }
+    // NO tenant filter - allow pickup of all packages for the mailbox
+    // This reflects real-world behavior where someone working for or living at
+    // the mailbox can pick up all packages regardless of individual tenant assignments
 
     setFilteredPackages(filtered);
-  }, [packages, searchQuery, statusFilter, selectedTenant]);
+  }, [packages, searchQuery, statusFilter]);
 
   const loadPackages = async () => {
     setIsLoading(true);
@@ -172,15 +172,14 @@ export const PackagePickup: React.FC<PackagePickupProps> = ({
       return;
     }
 
-    if (!selectedTenant) {
-      onError?.('Select a tenant before confirming pickup.');
-      return;
-    }
+    // No tenant requirement - real-world mailbox pickup allows anyone from the mailbox
+    // to pick up all packages for that mailbox
 
     try {
       const pickupData = {
         package_ids: workflow.selectedPackages.map((p) => p.id),
-        tenant_id: selectedTenant.id,
+        mailbox_id: selectedMailbox.id,
+        tenant_id: selectedTenant?.id, // Optional - allows cross-tenant pickup
         pickup_person_name: workflow.pickupPerson,
         signature_data: workflow.signature.dataURL,
       };
@@ -434,9 +433,10 @@ export const PackagePickup: React.FC<PackagePickupProps> = ({
                       data-testid="pickup-table"
                     >
                       <colgroup>
-                        <col style={{ width: '42%' }} />
+                        <col style={{ width: '32%' }} />
+                        <col style={{ width: '15%' }} />
+                        <col style={{ width: '11%' }} />
                         <col style={{ width: '14%' }} />
-                        <col style={{ width: '16%' }} />
                         <col style={{ width: '14%' }} />
                         <col style={{ width: '14%' }} />
                       </colgroup>
@@ -452,6 +452,7 @@ export const PackagePickup: React.FC<PackagePickupProps> = ({
                       >
                         <tr>
                           <th style={{ padding: '0.75rem 0.5rem', textAlign: 'left' }} data-testid="pickup-col-tracking">Tracking</th>
+                          <th style={{ padding: '0.75rem 0.5rem', textAlign: 'left' }} data-testid="pickup-col-tenant">Tenant</th>
                           <th style={{ padding: '0.75rem 0.5rem', textAlign: 'left' }} data-testid="pickup-col-status">Status</th>
                           <th style={{ padding: '0.75rem 0.5rem', textAlign: 'left' }} data-testid="pickup-col-carrier">Carrier</th>
                           <th style={{ padding: '0.75rem 0.5rem', textAlign: 'left' }} data-testid="pickup-col-received">Received</th>
@@ -520,6 +521,11 @@ export const PackagePickup: React.FC<PackagePickupProps> = ({
                                   >
                                     {pkg.tracking_number}
                                   </span>
+                                </span>
+                              </td>
+                              <td style={{ padding: '0.75rem 0.5rem', verticalAlign: 'middle', color: 'var(--color-gray-700)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 0 }}>
+                                <span style={{ display: 'block', overflow: 'hidden', textOverflow: 'ellipsis' }} title={pkg.tenant_name || 'Unassigned'}>
+                                  {pkg.tenant_name || <em style={{ color: 'var(--color-gray-400)' }}>Unassigned</em>}
                                 </span>
                               </td>
                               <td style={{ padding: '0.75rem 0.5rem', verticalAlign: 'middle', color: 'var(--color-gray-700)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 0 }}>
@@ -677,11 +683,33 @@ export const PackagePickup: React.FC<PackagePickupProps> = ({
               <h5 style={{ 
                 fontWeight: '600', 
                 color: 'var(--color-gray-900)', 
-                marginBottom: '1rem',
+                marginBottom: '0.5rem',
                 fontSize: '1rem'
               }}>
                 📦 Packages to be picked up ({workflow.selectedPackages.length})
               </h5>
+              {(() => {
+                const uniqueTenants = [...new Set(workflow.selectedPackages.map(p => p.tenant_name).filter(Boolean))];
+                const hasMultipleTenants = uniqueTenants.length > 1;
+                const hasUnassigned = workflow.selectedPackages.some(p => !p.tenant_name);
+                
+                if (hasMultipleTenants || hasUnassigned) {
+                  return (
+                    <p style={{ 
+                      fontSize: '0.875rem', 
+                      color: '#d97706', 
+                      marginBottom: '1rem',
+                      padding: '0.5rem 0.75rem',
+                      background: '#fef3c7',
+                      borderRadius: 'var(--radius-sm)',
+                      border: '1px solid #fbbf24'
+                    }}>
+                      ⚠️ Cross-tenant pickup: {hasMultipleTenants ? `${uniqueTenants.length} tenants` : 'Mixed assignments'}
+                    </p>
+                  );
+                }
+                return null;
+              })()}
               <ul style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                 {workflow.selectedPackages.map((pkg, index) => (
                   <li 
@@ -689,17 +717,22 @@ export const PackagePickup: React.FC<PackagePickupProps> = ({
                     style={{ 
                       display: 'flex', 
                       justifyContent: 'space-between',
+                      alignItems: 'center',
                       padding: '0.75rem',
                       background: index % 2 === 0 ? '#f8fafc' : 'white',
                       borderRadius: 'var(--radius-sm)',
                       fontSize: '0.875rem',
                       fontWeight: '500',
+                      gap: '1rem',
                     }}
                   >
-                    <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--color-gray-900)' }}>
+                    <span style={{ fontFamily: 'var(--font-mono)', color: 'var(--color-gray-900)', flex: '0 0 auto' }}>
                       {pkg.tracking_number}
                     </span>
-                    <span style={{ color: 'var(--color-gray-600)' }}>
+                    <span style={{ color: 'var(--color-gray-500)', fontSize: '0.8125rem', flex: '1 1 auto', textAlign: 'center' }}>
+                      {pkg.tenant_name || <em>Unassigned</em>}
+                    </span>
+                    <span style={{ color: 'var(--color-gray-600)', flex: '0 0 auto' }}>
                       {pkg.carrier ? pkg.carrier.toUpperCase() : 'N/A'}
                     </span>
                   </li>

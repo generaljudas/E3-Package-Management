@@ -61,12 +61,13 @@ router.get('/', async (req, res) => {
         p.id as package_id,
         p.tracking_number,
         p.high_value,
-        t.mailbox_number,
+        m.mailbox_number,
         t.name as tenant_name,
         CASE WHEN s.id IS NOT NULL THEN 1 ELSE 0 END as has_signature
       FROM pickup_events pe
       JOIN packages p ON pe.package_id = p.id
       JOIN tenants t ON pe.tenant_id = t.id
+      JOIN mailboxes m ON t.mailbox_id = m.id
       LEFT JOIN signatures s ON s.pickup_event_id = pe.id
       WHERE ${whereConditions.join(' AND ')}
       ORDER BY pe.pickup_timestamp DESC
@@ -102,9 +103,13 @@ router.post('/', [
   body('package_ids.*')
     .isInt({ min: 1 })
     .withMessage('All package IDs must be positive integers'),
-  body('tenant_id')
+  body('mailbox_id')
     .isInt({ min: 1 })
-    .withMessage('Valid tenant ID is required'),
+    .withMessage('Valid mailbox ID is required'),
+  body('tenant_id')
+    .optional()
+    .isInt({ min: 1 })
+    .withMessage('Tenant ID must be a positive integer if provided'),
   body('pickup_person_name')
     .isLength({ min: 1, max: 255 })
     .withMessage('Pickup person name is required (1-255 characters)'),
@@ -121,6 +126,7 @@ router.post('/', [
   try {
     const {
       package_ids,
+      mailbox_id,
       tenant_id,
       pickup_person_name,
       signature_data,
@@ -128,25 +134,32 @@ router.post('/', [
       staff_initials,
     } = req.body;
 
-    // Verify tenant exists and owns all packages
+    // Verify all packages belong to the specified mailbox
+    // Allow cross-tenant pickup - real-world mailbox behavior
+    // Someone from the mailbox can pick up all packages for that mailbox
+    const placeholders = package_ids.map(() => '?').join(',');
     const packageVerifyResult = await dbQuery(`
       SELECT 
         p.id,
         p.tracking_number,
         p.status,
         p.high_value,
+        p.tenant_id,
         t.name as tenant_name,
-        t.mailbox_number
+        t.mailbox_id,
+        m.mailbox_number
       FROM packages p
-      JOIN tenants t ON p.tenant_id = t.id
-      WHERE p.id = ANY(?) AND p.tenant_id = ? AND t.active = 1
-    `, [package_ids, tenant_id]);
+      LEFT JOIN tenants t ON p.tenant_id = t.id
+      JOIN mailboxes m ON p.mailbox_id = m.id
+      WHERE p.id IN (${placeholders}) AND m.id = ?
+    `, [...package_ids, mailbox_id]);
 
     if (packageVerifyResult.rows.length !== package_ids.length) {
       return res.status(400).json({
-        error: 'Invalid packages or tenant mismatch',
+        error: 'Invalid packages or mailbox mismatch',
         expected_count: package_ids.length,
         found_count: packageVerifyResult.rows.length,
+        details: 'All packages must belong to the specified mailbox',
       });
     }
 
@@ -180,137 +193,70 @@ router.post('/', [
       });
     }
 
-    try {
-      // Process pickup in a transaction using pickup_events/signatures if available
-      const queries = [];
-      // Update all packages to 'picked_up'
-      queries.push({
-        text: `
-          UPDATE packages 
-          SET status = 'picked_up', picked_up_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
-          WHERE id = ANY(?)
-        `,
-        params: [package_ids],
-      });
+    // Update packages to 'picked_up' status
+    const updatePlaceholders = package_ids.map(() => '?').join(',');
+    await dbQuery(
+      `
+      UPDATE packages
+      SET status = 'picked_up',
+          picked_up_at = CURRENT_TIMESTAMP,
+          updated_at = CURRENT_TIMESTAMP
+      WHERE id IN (${updatePlaceholders})
+    `,
+      package_ids
+    );
 
-      // Create pickup events for each package
+    // Store signature as Base64-encoded PNG in database
+    // Format: "data:image/png;base64,iVBORw0KGgo..." (10-50KB typical)
+    let signatureIds = [];
+    if (signature_data) {
       for (const packageId of package_ids) {
-        queries.push({
-          text: `
-            INSERT INTO pickup_events (
-              package_id,
-              tenant_id,
-              pickup_person_name,
-              signature_required,
-              signature_captured,
-              notes,
-              staff_initials
-            )
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+        try {
+          const sigInsert = await dbQuery(
+            `
+            INSERT INTO signatures (package_id, signature_data)
+            VALUES (?, ?)
+            ON CONFLICT(package_id) DO UPDATE SET signature_data = excluded.signature_data
             RETURNING id
           `,
-          params: [
-            packageId,
-            tenant_id,
-            pickup_person_name,
-            signatureRequired,
-            signatureCaptured,
-            notes || null,
-            staff_initials || null,
-          ],
-        });
-      }
-
-      const results = await transaction(queries);
-
-      // If signature was provided, save it for the first pickup event
-      let signatureId = null;
-      if (signatureCaptured) {
-        const pickupEventIds = results.slice(1).map(result => result.rows[0].id);
-        const signatureResult = await dbQuery(`
-          INSERT INTO signatures (pickup_event_id, signature_data)
-          VALUES (?, ?)
-          RETURNING id
-        `, [pickupEventIds[0], signature_data]);
-        signatureId = signatureResult.rows[0].id;
-      }
-
-      return res.json({
-        success: true,
-        message: 'Package pickup processed successfully',
-        pickup_summary: {
-          packages_picked_up: package_ids.length,
-          tenant_name: packageVerifyResult.rows[0].tenant_name,
-          tenant_mailbox: packageVerifyResult.rows[0].mailbox_number,
-          pickup_person: pickup_person_name,
-          signature_required: signatureRequired,
-          signature_captured: signatureCaptured,
-          signature_id: signatureId,
-          staff_initials,
-          pickup_timestamp: new Date().toISOString(),
-        },
-        packages: packageVerifyResult.rows.map(pkg => ({
-          id: pkg.id,
-          tracking_number: pkg.tracking_number,
-          status: 'picked_up',
-        })),
-      });
-    } catch (dbErr) {
-      // Fallback path if pickup_events/signatures tables or columns are missing
-      // (e.g., relation not found 42P01 or column not found 42703)
-      if (dbErr && (dbErr.code === '42P01' || dbErr.code === '42703')) {
-        // Minimal completion aligned with current schema:
-        // 1) Update packages -> status='picked_up', picked_up_at timestamp
-        await dbQuery(
-          `
-          UPDATE packages
-          SET status = 'picked_up',
-              picked_up_at = CURRENT_TIMESTAMP,
-              updated_at = CURRENT_TIMESTAMP
-          WHERE id = ANY(?)
-        `,
-          [package_ids]
-        );
-
-        // 2) If signature provided, store it in signatures table for each package
-        let signatureIds = [];
-        if (signature_data) {
-          for (const packageId of package_ids) {
-            const sigInsert = await dbQuery(
-              `
-              INSERT INTO signatures (package_id, signature_data)
-              VALUES (?, ?)
-              RETURNING id
-            `,
-              [packageId, signature_data]
-            );
-            signatureIds.push(sigInsert.rows[0].id);
-          }
+            [packageId, signature_data]
+          );
+          signatureIds.push(sigInsert.rows[0].id);
+        } catch (sigError) {
+          console.error(`Failed to store signature for package ${packageId}:`, sigError);
+          // Continue with pickup even if signature storage fails
         }
-
-        return res.json({
-          success: true,
-          message: 'Package pickup processed successfully',
-          pickup_summary: {
-            packages_picked_up: package_ids.length,
-            tenant_name: packageVerifyResult.rows[0].tenant_name,
-            tenant_mailbox: packageVerifyResult.rows[0].mailbox_number,
-            pickup_person: pickup_person_name,
-            signature_required: signatureRequired,
-            signature_captured: !!signature_data,
-            signature_ids: signatureIds,
-            staff_initials,
-            pickup_timestamp: new Date().toISOString(),
-          },
-          packages: packageVerifyResult.rows.map((pkg) => ({
-            id: pkg.id,
-            tracking_number: pkg.tracking_number,
-            status: 'picked_up',
-          })),
-        });
       }
-      throw dbErr;
     }
+
+    // Get unique tenant names for summary
+    const uniqueTenants = [...new Set(packageVerifyResult.rows.map(pkg => pkg.tenant_name))];
+    const tenantSummary = uniqueTenants.length === 1 
+      ? uniqueTenants[0] 
+      : `${uniqueTenants.length} tenants`;
+
+    return res.json({
+      success: true,
+      message: 'Package pickup processed successfully',
+      pickup_summary: {
+        packages_picked_up: package_ids.length,
+        tenant_name: tenantSummary,
+        tenant_mailbox: packageVerifyResult.rows[0].mailbox_number,
+        pickup_person: pickup_person_name,
+        signature_required: signatureRequired,
+        signature_captured: !!signature_data && signatureIds.length > 0,
+        signature_ids: signatureIds,
+        staff_initials,
+        pickup_timestamp: new Date().toISOString(),
+        cross_tenant_pickup: uniqueTenants.length > 1,
+      },
+      packages: packageVerifyResult.rows.map((pkg) => ({
+        id: pkg.id,
+        tracking_number: pkg.tracking_number,
+        status: 'picked_up',
+        tenant_name: pkg.tenant_name,
+      })),
+    });
   } catch (err) {
     console.error('Error processing pickup:', err);
     res.status(500).json({ error: 'Failed to process pickup' });
@@ -343,7 +289,7 @@ router.get('/:id', [
         p.carrier,
         p.size_category,
         t.id as tenant_id,
-        t.mailbox_number,
+        m.mailbox_number,
         t.name as tenant_name,
         t.phone as tenant_phone,
         s.id as signature_id,
@@ -351,6 +297,7 @@ router.get('/:id', [
       FROM pickup_events pe
       JOIN packages p ON pe.package_id = p.id
       JOIN tenants t ON pe.tenant_id = t.id
+      JOIN mailboxes m ON t.mailbox_id = m.id
       LEFT JOIN signatures s ON s.pickup_event_id = pe.id
       WHERE pe.id = ?
     `, [id]);
@@ -390,12 +337,13 @@ router.post('/bulk-status', [
   try {
     const { package_ids, status, notes } = req.body;
 
+    const bulkPlaceholders = package_ids.map(() => '?').join(',');
     const result = await dbQuery(`
       UPDATE packages 
       SET status = ?, notes = COALESCE(?, notes), updated_at = CURRENT_TIMESTAMP
-      WHERE id = ANY(?) AND status IN ('received', 'ready_for_pickup')
+      WHERE id IN (${bulkPlaceholders}) AND status IN ('received', 'ready_for_pickup')
       RETURNING id, tracking_number, status
-    `, [status, notes, package_ids]);
+    `, [status, notes, ...package_ids]);
 
     res.json({
       message: `${result.rows.length} packages updated to ${status}`,

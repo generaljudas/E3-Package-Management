@@ -1,6 +1,7 @@
 import React, { useState, useRef } from 'react';
 import Reports from './Reports';
 import MailboxTenantManagement from './MailboxTenantManagement';
+import SignatureRetrieval from './SignatureRetrieval';
 import type { Mailbox, Tenant } from '../types';
 
 type ToolId = 'signature-retrieval' | 'mailbox-management' | 'reports';
@@ -21,7 +22,7 @@ const toolCategories: ToolCategory[] = [
   {
     name: 'Signature Retrieval',
     tools: [
-      { id: 'signature-retrieval', label: 'View Package Signatures', available: false },
+      { id: 'signature-retrieval', label: 'View Package Signatures', available: true },
     ],
   },
   {
@@ -168,12 +169,10 @@ const Tools: React.FC<ToolsProps> = ({ selectedMailbox, selectedTenant, onError,
           )}
 
           {activeTool === 'signature-retrieval' && (
-            <div className="text-center py-12 text-gray-500">
-              <div className="text-5xl mb-2">✍️</div>
-              <p className="font-medium mb-2">Signature Retrieval</p>
-              <p className="text-sm">View and retrieve signatures for picked up packages</p>
-              <p className="text-xs mt-4 text-gray-400">Coming soon</p>
-            </div>
+            <SignatureRetrieval
+              onError={(e) => onError?.(e)}
+              onSuccess={(message) => onSuccess?.(message)}
+            />
           )}
 
           {activeTool === 'mailbox-management' && (

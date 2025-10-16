@@ -30,19 +30,18 @@ router.get('/:id', [
     const result = await dbQuery(`
       SELECT 
         s.id,
-        s.pickup_event_id,
+        s.package_id,
         s.signature_data,
-        s.signature_url,
         s.created_at,
-        pe.pickup_person_name,
-        pe.pickup_timestamp,
         p.tracking_number,
+        p.status,
+        p.picked_up_at as pickup_date,
         t.name as tenant_name,
-        t.mailbox_number
+        m.mailbox_number
       FROM signatures s
-      JOIN pickup_events pe ON s.pickup_event_id = pe.id
-      JOIN packages p ON pe.package_id = p.id
-      JOIN tenants t ON pe.tenant_id = t.id
+      JOIN packages p ON s.package_id = p.id
+      JOIN tenants t ON p.tenant_id = t.id
+      JOIN mailboxes m ON t.mailbox_id = m.id
       WHERE s.id = ?
     `, [id]);
 
@@ -63,31 +62,32 @@ router.get('/:id', [
 });
 
 /**
- * GET /api/signatures/pickup-event/:pickupEventId
- * Get signature by pickup event ID
+ * GET /api/signatures/package/:packageId
+ * Get signature by package ID
  */
-router.get('/pickup-event/:pickupEventId', [
-  param('pickupEventId').isInt().withMessage('Pickup event ID must be an integer'),
+router.get('/package/:packageId', [
+  param('packageId').isInt().withMessage('Package ID must be an integer'),
   handleValidationErrors,
 ], async (req, res) => {
   try {
-    const { pickupEventId } = req.params;
+    const { packageId } = req.params;
     
     const result = await dbQuery(`
       SELECT 
-        s.id,
-        s.pickup_event_id,
-        s.signature_data,
-        s.signature_url,
-        s.created_at
+        s.id, s.package_id, s.signature_data, s.created_at,
+        p.tracking_number, p.status, p.picked_up_at as pickup_date,
+        t.name as tenant_name, m.mailbox_number
       FROM signatures s
-      WHERE s.pickup_event_id = ?
-    `, [pickupEventId]);
+      JOIN packages p ON s.package_id = p.id
+      JOIN tenants t ON p.tenant_id = t.id
+      JOIN mailboxes m ON t.mailbox_id = m.id
+      WHERE s.package_id = ?
+    `, [packageId]);
 
     if (result.rows.length === 0) {
       return res.status(404).json({ 
-        error: 'Signature not found for this pickup event',
-        pickup_event_id: parseInt(pickupEventId),
+        error: 'Signature not found for this package',
+        package_id: parseInt(packageId),
       });
     }
 
@@ -95,7 +95,7 @@ router.get('/pickup-event/:pickupEventId', [
       signature: result.rows[0],
     });
   } catch (err) {
-    console.error('Error fetching signature by pickup event:', err);
+    console.error('Error fetching signature by package:', err);
     res.status(500).json({ error: 'Failed to fetch signature' });
   }
 });

@@ -82,6 +82,7 @@ function Dashboard() {
               showToast(success ? 'success' : 'error', message);
             }}
             onClearSelection={handleClearSelection}
+            view={currentView}
           />
         )}
 
