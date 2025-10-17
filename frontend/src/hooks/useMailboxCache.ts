@@ -10,38 +10,63 @@ interface MailboxCacheSnapshot {
 const CACHE_DURATION_MS = 5 * 60 * 1000; // 5 minutes
 let mailboxCache: MailboxCacheSnapshot | null = null;
 let mailboxCachePromise: Promise<Mailbox[]> | null = null;
+let isGloballyLoading = false;
+const loadingListeners = new Set<(loading: boolean) => void>();
+
+function notifyLoadingChange(loading: boolean) {
+  isGloballyLoading = loading;
+  loadingListeners.forEach(listener => listener(loading));
+}
 
 export function invalidateMailboxCache() {
   console.debug('Invalidating mailbox cache');
   mailboxCache = null;
   mailboxCachePromise = null;
+  notifyLoadingChange(false);
 }
 
 export function useMailboxCache() {
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(isGloballyLoading);
   const isMountedRef = useRef(true);
 
   useEffect(() => {
+    isMountedRef.current = true;
+    
+    // Subscribe to loading state changes
+    const listener = (loading: boolean) => {
+      if (isMountedRef.current) {
+        setIsLoading(loading);
+      }
+    };
+    loadingListeners.add(listener);
+    
+    // Sync with current global state on mount only
+    setIsLoading(isGloballyLoading);
+    
     return () => {
       isMountedRef.current = false;
+      loadingListeners.delete(listener);
     };
+  }, []); // Only run once on mount
+
+  // Helper to check if cache is valid without causing re-renders
+  const isCacheValid = useCallback(() => {
+    return mailboxCache && Date.now() - mailboxCache.lastFetched < CACHE_DURATION_MS;
   }, []);
 
   const loadMailboxes = useCallback(async (): Promise<Mailbox[]> => {
-    if (
-      mailboxCache &&
-      Date.now() - mailboxCache.lastFetched < CACHE_DURATION_MS
-    ) {
-      return mailboxCache.mailboxes;
+    // If cache is valid, return immediately without setting loading state
+    if (isCacheValid()) {
+      return mailboxCache!.mailboxes;
     }
 
+    // If another component is already loading, wait for that promise
     if (mailboxCachePromise) {
       return mailboxCachePromise;
     }
 
-    if (isMountedRef.current) {
-      setIsLoading(true);
-    }
+    // Set global loading state (will notify all listeners)
+    notifyLoadingChange(true);
 
     mailboxCachePromise = (async () => {
       try {
@@ -54,9 +79,7 @@ export function useMailboxCache() {
         return mailboxes;
       } finally {
         mailboxCachePromise = null;
-        if (isMountedRef.current) {
-          setIsLoading(false);
-        }
+        notifyLoadingChange(false);
       }
     })();
 
@@ -64,9 +87,10 @@ export function useMailboxCache() {
       return await mailboxCachePromise;
     } catch (error) {
       mailboxCache = null;
+      notifyLoadingChange(false);
       throw error;
     }
-  }, []);
+  }, [isCacheValid]);
 
   const searchMailboxes = useCallback(async (query: string): Promise<Mailbox[]> => {
     const trimmedQuery = query.trim();

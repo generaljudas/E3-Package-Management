@@ -70,6 +70,7 @@ export default function MailboxLookup({
     isLoading: isCacheLoading,
   } = useMailboxCache();
 
+  // Load mailboxes cache on mount (will be instant if already cached)
   useEffect(() => {
     loadMailboxes().catch((err) => {
       console.error('Failed to load mailbox cache:', err);
