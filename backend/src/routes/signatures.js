@@ -36,12 +36,15 @@ router.get('/:id', [
         p.tracking_number,
         p.status,
         p.picked_up_at as pickup_date,
+        p.pickup_by,
         t.name as tenant_name,
-        m.mailbox_number
+        m.mailbox_number,
+        pe.pickup_person_name
       FROM signatures s
       JOIN packages p ON s.package_id = p.id
-      JOIN tenants t ON p.tenant_id = t.id
-      JOIN mailboxes m ON t.mailbox_id = m.id
+      LEFT JOIN pickup_events pe ON s.pickup_event_id = pe.id
+      LEFT JOIN tenants t ON p.tenant_id = t.id
+      LEFT JOIN mailboxes m ON p.mailbox_id = m.id
       WHERE s.id = ?
     `, [id]);
 
@@ -76,11 +79,14 @@ router.get('/package/:packageId', [
       SELECT 
         s.id, s.package_id, s.signature_data, s.created_at,
         p.tracking_number, p.status, p.picked_up_at as pickup_date,
-        t.name as tenant_name, m.mailbox_number
+        p.pickup_by,
+        t.name as tenant_name, m.mailbox_number,
+        pe.pickup_person_name
       FROM signatures s
       JOIN packages p ON s.package_id = p.id
-      JOIN tenants t ON p.tenant_id = t.id
-      JOIN mailboxes m ON t.mailbox_id = m.id
+      LEFT JOIN pickup_events pe ON s.pickup_event_id = pe.id
+      LEFT JOIN tenants t ON p.tenant_id = t.id
+      LEFT JOIN mailboxes m ON p.mailbox_id = m.id
       WHERE s.package_id = ?
     `, [packageId]);
 
