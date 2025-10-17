@@ -73,8 +73,8 @@ function Dashboard() {
           tabs={NAVIGATION_TABS}
         />
         
-        {/* Only show mailbox selection for intake and pickup views */}
-        {currentView !== 'tools' && (
+        {/* Only show mailbox selection for intake view (always) and pickup view (optional helper) */}
+        {(currentView === 'intake' || (currentView === 'pickup' && !selectedMailbox)) && (
           <MailboxSelectionCard
             onMailboxSelect={handleMailboxSelect}
             onTenantChange={handleTenantChange}
@@ -93,6 +93,28 @@ function Dashboard() {
             selectedTenant={selectedTenant}
             onError={(error) => showToast('error', error)}
             onSuccess={(message) => showToast('success', message)}
+          />
+        ) : currentView === 'pickup' ? (
+          // Pickup view works with or without mailbox selection
+          <PackagePickup
+            selectedMailbox={selectedMailbox}
+            selectedTenant={selectedTenant}
+            onSuccess={(pickupData) => {
+              const count =
+                (pickupData && pickupData.pickup_summary && pickupData.pickup_summary.packages_picked_up) ??
+                (Array.isArray(pickupData?.packages) ? pickupData.packages.length : undefined) ??
+                (Array.isArray(pickupData?.package_ids) ? pickupData.package_ids.length : undefined) ??
+                0;
+
+              const plural = count === 1 ? '' : 's';
+              if (pickupData.offline) {
+                showToast('info', `Pickup queued for sync: ${count} package${plural}`);
+              } else {
+                showToast('success', `Pickup completed: ${count} package${plural}`);
+              }
+            }}
+            onError={(error) => showToast('error', error)}
+            onClearMailbox={handleClearSelection}
           />
         ) : !selectedMailbox ? (
           <EmptyState
@@ -113,28 +135,6 @@ function Dashboard() {
                   } else {
                     const count = packageData.batch?.length || 1;
                     showToast('success', `✅ ${count} package${count > 1 ? 's' : ''} registered successfully`);
-                  }
-                }}
-                onError={(error) => showToast('error', error)}
-              />
-            )}
-
-            {currentView === 'pickup' && (
-              <PackagePickup
-                selectedMailbox={selectedMailbox}
-                selectedTenant={selectedTenant}
-                onSuccess={(pickupData) => {
-                  const count =
-                    (pickupData && pickupData.pickup_summary && pickupData.pickup_summary.packages_picked_up) ??
-                    (Array.isArray(pickupData?.packages) ? pickupData.packages.length : undefined) ??
-                    (Array.isArray(pickupData?.package_ids) ? pickupData.package_ids.length : undefined) ??
-                    0;
-
-                  const plural = count === 1 ? '' : 's';
-                  if (pickupData.offline) {
-                    showToast('info', `Pickup queued for sync: ${count} package${plural}`);
-                  } else {
-                    showToast('success', `Pickup completed: ${count} package${plural}`);
                   }
                 }}
                 onError={(error) => showToast('error', error)}

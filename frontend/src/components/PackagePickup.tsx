@@ -9,10 +9,11 @@ import { useOfflineOperations } from '../hooks/useOffline';
 import type { Mailbox, Tenant, PickupRequest, PickupResponse } from '../types';
 
 interface PackagePickupProps {
-  selectedMailbox: Mailbox;
+  selectedMailbox: Mailbox | null;
   selectedTenant?: Tenant | null;
   onSuccess?: (pickupData: PickupSuccessPayload) => void;
   onError?: (error: string) => void;
+  onClearMailbox?: () => void;
 }
 
 interface Package {
@@ -28,6 +29,8 @@ interface Package {
   pickup_date?: string | null;
   pickup_signature?: string | null;
   status: 'received' | 'ready_for_pickup' | 'picked_up' | 'returned' | 'returned_to_sender';
+  mailbox_id: number;
+  mailbox_number: string;
   tenant_id?: number | null;
   tenant_name?: string | null;
 }
@@ -58,6 +61,7 @@ export const PackagePickup: React.FC<PackagePickupProps> = ({
   selectedTenant,
   onSuccess,
   onError,
+  onClearMailbox,
 }) => {
   const [packages, setPackages] = useState<Package[]>([]);
   const [filteredPackages, setFilteredPackages] = useState<Package[]>([]);
@@ -76,11 +80,11 @@ export const PackagePickup: React.FC<PackagePickupProps> = ({
   const searchRef = useRef<HTMLInputElement>(null);
   const { isOnline, queuePackagePickup } = useOfflineOperations();
 
-  // Load packages for the selected mailbox
+  // Load packages for the selected mailbox (or all packages if no mailbox selected)
   useEffect(() => {
     loadPackages();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedMailbox.id]);
+  }, [selectedMailbox?.id]);
 
   // Filter packages when search/filter changes
   useEffect(() => {
@@ -115,7 +119,12 @@ export const PackagePickup: React.FC<PackagePickupProps> = ({
     setIsLoading(true);
     try {
       if (isOnline) {
-        const response = await fetch(`http://localhost:3001/api/packages/mailbox/${selectedMailbox.id}`);
+        // Fetch all packages or mailbox-specific packages
+        const url = selectedMailbox 
+          ? `http://localhost:3001/api/packages/mailbox/${selectedMailbox.id}`
+          : `http://localhost:3001/api/packages/all`;
+        
+        const response = await fetch(url);
         if (!response.ok) {
           throw new Error(`Failed to load packages: ${response.status}`);
         }
@@ -151,7 +160,16 @@ export const PackagePickup: React.FC<PackagePickupProps> = ({
       onError?.('Please select at least one package');
       return;
     }
-    setWorkflow((prev) => ({ ...prev, step: 'verify' }));
+    
+    // Prefill pickup person with tenant name from selected packages
+    // If multiple tenants, use the first one's name, or selectedTenant if available
+    const prefillName = selectedTenant?.name || workflow.selectedPackages[0]?.tenant_name || '';
+    
+    setWorkflow((prev) => ({ 
+      ...prev, 
+      step: 'verify',
+      pickupPerson: prefillName
+    }));
   };
 
   const proceedToSignature = () => {
@@ -176,13 +194,22 @@ export const PackagePickup: React.FC<PackagePickupProps> = ({
       return;
     }
 
+    // When no mailbox is selected, use the mailbox_id from the first selected package
+    // All packages in a pickup must belong to the same mailbox
+    const mailboxId = selectedMailbox?.id || workflow.selectedPackages[0]?.mailbox_id;
+    
+    if (!mailboxId) {
+      onError?.('Unable to determine mailbox for pickup');
+      return;
+    }
+
     // No tenant requirement - real-world mailbox pickup allows anyone from the mailbox
     // to pick up all packages for that mailbox
 
     try {
       const pickupData: PickupRequest = {
         package_ids: workflow.selectedPackages.map((p) => p.id),
-        mailbox_id: selectedMailbox.id,
+        mailbox_id: mailboxId,
         tenant_id: selectedTenant?.id, // Optional - allows cross-tenant pickup
         pickup_person_name: workflow.pickupPerson,
         signature_data: workflow.signature.dataURL,
@@ -206,7 +233,7 @@ export const PackagePickup: React.FC<PackagePickupProps> = ({
           console.warn('Pickup onSuccess handler threw:', cbErr);
         }
       } else {
-        const queueId = queuePackagePickup(pickupData, selectedMailbox.id.toString());
+        const queueId = queuePackagePickup(pickupData, mailboxId.toString());
         try {
           onSuccess?.({ ...pickupData, queueId, offline: true });
         } catch (cbErr) {
@@ -310,9 +337,11 @@ export const PackagePickup: React.FC<PackagePickupProps> = ({
                 alignItems: 'center',
                 justifyContent: 'center',
                 boxShadow: 'var(--shadow-sm)',
+                flexWrap: 'wrap',
+                gap: '0.75rem',
               }}
             >
-              <div style={{ display: 'flex', gap: '0.5rem' }} data-testid="pickup-status-filter">
+              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }} data-testid="pickup-status-filter">
                 {(['all', 'available', 'picked_up'] as const).map((filter) => (
                   <button
                     key={filter}
@@ -336,6 +365,37 @@ export const PackagePickup: React.FC<PackagePickupProps> = ({
                     {filter === 'all' ? '📋 All' : filter === 'available' ? '✅ Available' : '📦 Picked Up'}
                   </button>
                 ))}
+                
+                {/* Mailbox Filter Chip */}
+                {selectedMailbox && onClearMailbox && (
+                  <button
+                    onClick={onClearMailbox}
+                    data-testid="pickup-clear-mailbox-filter"
+                    title="Clear mailbox filter to view all packages"
+                    style={{
+                      padding: '0.5rem 1rem',
+                      borderRadius: 'var(--radius-md)',
+                      fontSize: '0.875rem',
+                      fontWeight: '600',
+                      transition: 'all 0.2s ease',
+                      border: '2px solid rgba(255, 255, 255, 0.9)',
+                      cursor: 'pointer',
+                      background: 'rgba(255, 255, 255, 0.15)',
+                      color: 'white',
+                      boxShadow: 'var(--shadow-sm)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                    }}
+                  >
+                    <span>📬 Mailbox {selectedMailbox.mailbox_number}</span>
+                    <span style={{ 
+                      fontSize: '1rem', 
+                      fontWeight: '700',
+                      opacity: 0.9,
+                    }}>✕</span>
+                  </button>
+                )}
               </div>
             </div>            {/* Search Input and Select/Deselect All */}
             <div style={{ padding: '1.5rem 1.5rem 0', display: 'flex', gap: '0.75rem' }}>
@@ -437,7 +497,8 @@ export const PackagePickup: React.FC<PackagePickupProps> = ({
                       data-testid="pickup-table"
                     >
                       <colgroup>
-                        <col style={{ width: '32%' }} />
+                        {!selectedMailbox && <col style={{ width: '10%' }} />}
+                        <col style={{ width: selectedMailbox ? '32%' : '29%' }} />
                         <col style={{ width: '15%' }} />
                         <col style={{ width: '11%' }} />
                         <col style={{ width: '14%' }} />
@@ -455,6 +516,7 @@ export const PackagePickup: React.FC<PackagePickupProps> = ({
                         }}
                       >
                         <tr>
+                          {!selectedMailbox && <th style={{ padding: '0.75rem 0.5rem', textAlign: 'left' }} data-testid="pickup-col-mailbox">Mailbox</th>}
                           <th style={{ padding: '0.75rem 0.5rem', textAlign: 'left' }} data-testid="pickup-col-tracking">Tracking</th>
                           <th style={{ padding: '0.75rem 0.5rem', textAlign: 'left' }} data-testid="pickup-col-tenant">Tenant</th>
                           <th style={{ padding: '0.75rem 0.5rem', textAlign: 'left' }} data-testid="pickup-col-status">Status</th>
@@ -494,6 +556,22 @@ export const PackagePickup: React.FC<PackagePickupProps> = ({
                                 }
                               }}
                             >
+                              {!selectedMailbox && (
+                                <td style={{ padding: '0.75rem 0.5rem', verticalAlign: 'middle', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 0 }}>
+                                  <span 
+                                    style={{ 
+                                      display: 'block',
+                                      fontWeight: '600',
+                                      color: 'var(--color-gray-900)',
+                                      overflow: 'hidden',
+                                      textOverflow: 'ellipsis',
+                                    }}
+                                    title={`Mailbox ${pkg.mailbox_number}`}
+                                  >
+                                    {pkg.mailbox_number}
+                                  </span>
+                                </td>
+                              )}
                               <td style={{ padding: '0.75rem 0.5rem', verticalAlign: 'middle', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 0 }}>
                                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', overflow: 'hidden', maxWidth: '100%' }}>
                                   {canSelect && (

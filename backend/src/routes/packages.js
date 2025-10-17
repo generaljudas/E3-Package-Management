@@ -164,6 +164,60 @@ router.get('/tenant/:tenantId', [
 });
 
 /**
+ * GET /api/packages/all
+ * Get all packages across all mailboxes (for pickup interface showing all packages)
+ * Performance target: < 500ms
+ */
+router.get('/all', [
+  query('status').optional().isIn(['received', 'ready_for_pickup', 'picked_up', 'returned_to_sender']),
+  query('limit').optional().isInt({ min: 1, max: 1000 }).withMessage('Limit must be 1-1000'),
+  handleValidationErrors,
+], async (req, res) => {
+  try {
+    const { status, limit = 500 } = req.query;
+
+    let whereConditions = ['1=1'];
+    let params = [];
+
+    if (status) {
+      whereConditions.push(`p.status = ?`);
+      params.push(status);
+    }
+
+    const result = await dbQuery(`
+      SELECT 
+        p.id,
+        p.tracking_number,
+        p.mailbox_id,
+        p.tenant_id,
+        p.status,
+        p.carrier,
+        p.size_category as size,
+        p.high_value,
+        p.pickup_by,
+        p.notes,
+        p.received_at,
+        p.picked_up_at as pickup_date,
+        m.mailbox_number,
+        t.name as tenant_name,
+        t.email as tenant_email,
+        t.phone as tenant_phone
+      FROM packages p
+      JOIN mailboxes m ON p.mailbox_id = m.id
+      LEFT JOIN tenants t ON p.tenant_id = t.id
+      WHERE ${whereConditions.join(' AND ')}
+      ORDER BY m.mailbox_number ASC, p.received_at DESC
+      LIMIT ?
+    `, [...params, parseInt(limit)]);
+
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Error fetching all packages:', err);
+    res.status(500).json({ error: 'Failed to fetch all packages' });
+  }
+});
+
+/**
  * GET /api/packages/mailbox/:mailboxId
  * Get all packages for a specific mailbox (for pickup interface)
  * Performance target: < 300ms
