@@ -16,6 +16,8 @@ interface SignatureData {
   tracking_number?: string;
   status?: string;
   pickup_date?: string;
+  pickup_by?: string;
+  pickup_person_name?: string;
   tenant_name?: string;
   mailbox_number?: string;
 }
@@ -565,7 +567,9 @@ const SignatureRetrieval: React.FC<SignatureRetrievalProps> = ({ onError, onSucc
               {signatureData && (
                 <div className="col-span-2">
                   <div className="text-xs text-gray-500 mb-1">Picked Up By</div>
-                  <div className="font-semibold text-gray-900">{selectedPackage.pickup_by || 'Not recorded'}</div>
+                  <div className="font-semibold text-gray-900">
+                    {signatureData.pickup_person_name || signatureData.pickup_by || selectedPackage.pickup_by || 'Not recorded'}
+                  </div>
                 </div>
               )}
             </div>

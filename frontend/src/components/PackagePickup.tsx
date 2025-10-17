@@ -3,7 +3,7 @@
  * Handles package retrieval, verification, and checkout with signature capture
  */
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import SignaturePad, { SignatureVerification, type SignatureData } from './SignaturePad';
 import { useOfflineOperations } from '../hooks/useOffline';
 import type { Mailbox, Tenant, PickupRequest, PickupResponse } from '../types';
@@ -163,12 +163,12 @@ export const PackagePickup: React.FC<PackagePickupProps> = ({
     setWorkflow((prev) => ({ ...prev, step: 'signature', idVerified: true }));
   };
 
-  const handleSignatureChange = (signature: SignatureData | null) => {
+  const handleSignatureChange = useCallback((signature: SignatureData | null) => {
     setWorkflow((prev) => ({
       ...prev,
       signature: signature,
     }));
-  };
+  }, []);
 
   const confirmPickup = async () => {
     if (!workflow.signature) {

@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import Reports from './Reports';
 import MailboxTenantManagement from './MailboxTenantManagement';
 import SignatureRetrieval from './SignatureRetrieval';
+import { invalidateMailboxCache } from './MailboxLookup';
 import type { Mailbox, Tenant } from '../types';
 
 type ToolId = 'signature-retrieval' | 'mailbox-management' | 'reports';
@@ -41,6 +42,7 @@ const toolCategories: ToolCategory[] = [
 
 const Tools: React.FC<ToolsProps> = ({ selectedMailbox, selectedTenant, onError, onSuccess }) => {
   const [activeTool, setActiveTool] = useState<ToolId | null>(null);
+  const [isReloadingCache, setIsReloadingCache] = useState(false);
   const mailboxManagementBackHandler = useRef<(() => boolean) | null>(null);
 
   // Get icon and description for each tool
@@ -76,6 +78,18 @@ const Tools: React.FC<ToolsProps> = ({ selectedMailbox, selectedTenant, onError,
     mailboxManagementBackHandler.current = handler;
   };
 
+  const handleReloadCache = async () => {
+    setIsReloadingCache(true);
+    try {
+      invalidateMailboxCache();
+      onSuccess?.('Mailbox cache cleared and will reload on next search');
+    } catch (error) {
+      onError?.('Failed to reload cache');
+    } finally {
+      setIsReloadingCache(false);
+    }
+  };
+
   return (
     <div className="space-y-8" data-testid="tools-root">
       {activeTool && (
@@ -109,6 +123,48 @@ const Tools: React.FC<ToolsProps> = ({ selectedMailbox, selectedTenant, onError,
           <span style={{ fontSize: '1rem' }}>←</span>
           <span>Back</span>
         </button>
+      )}
+
+      {/* Cache Reload Button - Only show when no tool is active */}
+      {!activeTool && (
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '1rem' }}>
+          <button
+            onClick={handleReloadCache}
+            disabled={isReloadingCache}
+            data-testid="tools-reload-cache-button"
+            style={{
+              background: isReloadingCache 
+                ? 'linear-gradient(135deg, #9ca3af 0%, #6b7280 100%)'
+                : 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+              color: 'white',
+              padding: '0.75rem 1.25rem',
+              borderRadius: 'var(--radius-md)',
+              border: 'none',
+              cursor: isReloadingCache ? 'not-allowed' : 'pointer',
+              fontSize: '0.875rem',
+              fontWeight: '600',
+              boxShadow: '0 2px 8px rgba(16, 185, 129, 0.25)',
+              transition: 'all 0.2s ease',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              opacity: isReloadingCache ? 0.7 : 1,
+            }}
+            onMouseEnter={(e) => {
+              if (!isReloadingCache) {
+                e.currentTarget.style.transform = 'translateY(-1px)';
+                e.currentTarget.style.boxShadow = '0 4px 12px rgba(16, 185, 129, 0.3)';
+              }
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = '0 2px 8px rgba(16, 185, 129, 0.25)';
+            }}
+          >
+            <span style={{ fontSize: '1.125rem' }}>🔄</span>
+            <span>{isReloadingCache ? 'Reloading...' : 'Reload Mailbox Cache'}</span>
+          </button>
+        </div>
       )}
 
       {/* Show all tools in a single grid when no tool is active */}
