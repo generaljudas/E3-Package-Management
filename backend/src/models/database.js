@@ -15,6 +15,14 @@ let db = null;
  * In dev mode, use backend directory
  */
 const getDatabasePath = () => {
+  // Allow explicit overrides (useful for testing / separating private DBs)
+  // If relative, resolve from the backend directory.
+  const configuredPath = process.env.DB_PATH || process.env.E3_DB_PATH;
+  if (configuredPath && configuredPath.trim().length > 0) {
+    const trimmed = configuredPath.trim();
+    return path.isAbsolute(trimmed) ? trimmed : path.resolve(__dirname, '../..', trimmed);
+  }
+
   if (process.env.ELECTRON_MODE === 'true' && process.env.USER_DATA_PATH) {
     return path.join(process.env.USER_DATA_PATH, 'e3_package_manager.db');
   }
