@@ -2,6 +2,8 @@
 
 A comprehensive package inventory management system for mailbox renting centers. Built with a staff-first approach for speed, reliability, and keyboard-optimized workflows.
 
+> **Open Source Project**: This application is now open source and ready for community contribution. The repository contains a clean database schema template - you'll need to set up your own database instance following the setup instructions below.
+
 ## 🏗️ Architecture
 
 - **Frontend**: React + TypeScript + Vite + custom CSS
