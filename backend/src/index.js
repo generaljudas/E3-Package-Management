@@ -17,11 +17,11 @@ import pickupRoutes from './routes/pickups.js';
 import signatureRoutes from './routes/signatures.js';
 import reportRoutes from './routes/reports.js';
 
-// Load environment variables
-dotenv.config();
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
+
+// Load environment variables (ensure we load backend/.env regardless of cwd)
+dotenv.config({ path: join(__dirname, '../.env') });
 
 const app = express();
 const PORT = process.env.PORT || 3001;
