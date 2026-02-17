@@ -23,3 +23,14 @@ backend/server.log
 
 # Vite
 *.local
+
+# Database files (NEVER commit these - contains customer data)
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+*.db
+*.database
+database.sqlite*
+backend/database.sqlite*
+**/database.sqlite*
+db/
