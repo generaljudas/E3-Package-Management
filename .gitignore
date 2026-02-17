@@ -19,6 +19,9 @@ backend/server.log
 # Env & OS
 .env
 .env.*
+# Allow safe templates
+!.env.example
+!**/.env.example
 .DS_Store
 
 # Vite
