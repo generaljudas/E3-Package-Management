@@ -34,3 +34,4 @@ database.sqlite*
 backend/database.sqlite*
 **/database.sqlite*
 db/
+SECURITY_CLEANUP_SUMMARY.txt
