@@ -12,7 +12,6 @@ A comprehensive package inventory management system for mailbox renting centers.
 
 ## 🖼️ UI Screenshots
 
-Add your UI screenshots to `docs/screenshots/` and they will render here on GitHub.
 
 <p>
 	<img src="docs/screenshots/home.png" alt="Home" width="900" />
