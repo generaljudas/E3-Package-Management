@@ -10,6 +10,30 @@ A comprehensive package inventory management system for mailbox renting centers.
 - **Backend**: Node.js + Express + PostgreSQL
 - **Features**: PWA, Offline support, Real-time scanning, Signature capture
 
+## 🖼️ UI Screenshots
+
+Add your UI screenshots to `docs/screenshots/` and they will render here on GitHub.
+
+<p>
+	<img src="docs/screenshots/home.png" alt="Home" width="900" />
+</p>
+
+<p>
+	<img src="docs/screenshots/package-pickup.png" alt="Package pickup" width="900" />
+</p>
+
+<p>
+	<img src="docs/screenshots/confirm-packages-pickedup.png" alt="Confirm packages picked up" width="900" />
+</p>
+
+<p>
+	<img src="docs/screenshots/confirm-signature.png" alt="Confirm signature" width="900" />
+</p>
+
+<p>
+	<img src="docs/screenshots/tools.png" alt="Tools" width="900" />
+</p>
+
 ## 🚀 Quick Start
 
 ### Prerequisites
