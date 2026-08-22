@@ -6,6 +6,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import BarcodeScanner, { type BarcodeScanResult } from './BarcodeScanner';
 import { useOfflineOperations } from '../hooks/useOffline';
+import { API_BASE_URL } from '../services/api';
 import type {
   Mailbox,
   Tenant,
@@ -163,7 +164,7 @@ export const PackageIntake: React.FC<PackageIntakeProps> = ({
         let anyError = false;
         let errorMsg = '';
         for (const packageData of batchWithMeta) {
-          const response = await fetch('http://localhost:3001/api/packages', {
+          const response = await fetch(`${API_BASE_URL}/packages`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',

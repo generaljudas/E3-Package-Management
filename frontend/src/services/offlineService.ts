@@ -3,6 +3,7 @@
  * Handles caching tenant data and queueing operations when offline
  */
 
+import { API_BASE_URL } from './api';
 import type {
   OfflineQueueItem,
   OfflineOperation,
@@ -213,7 +214,7 @@ class OfflineService {
   }
 
   private async syncOperation(operation: OfflineQueueItem) {
-    const baseUrl = 'http://localhost:3001/api';
+    const baseUrl = API_BASE_URL;
 
     switch (operation.type) {
       case 'package_intake':

@@ -6,6 +6,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import SignaturePad, { SignatureVerification, type SignatureData } from './SignaturePad';
 import { useOfflineOperations } from '../hooks/useOffline';
+import { API_BASE_URL } from '../services/api';
 import type { Mailbox, Tenant, PickupRequest, PickupResponse } from '../types';
 
 interface PackagePickupProps {
@@ -120,9 +121,9 @@ export const PackagePickup: React.FC<PackagePickupProps> = ({
     try {
       if (isOnline) {
         // Fetch all packages or mailbox-specific packages
-        const url = selectedMailbox 
-          ? `http://localhost:3001/api/packages/mailbox/${selectedMailbox.id}`
-          : `http://localhost:3001/api/packages/all`;
+        const url = selectedMailbox
+          ? `${API_BASE_URL}/packages/mailbox/${selectedMailbox.id}`
+          : `${API_BASE_URL}/packages/all`;
         
         const response = await fetch(url);
         if (!response.ok) {
@@ -216,7 +217,7 @@ export const PackagePickup: React.FC<PackagePickupProps> = ({
       };
 
       if (isOnline) {
-        const response = await fetch('http://localhost:3001/api/pickups', {
+        const response = await fetch(`${API_BASE_URL}/pickups`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(pickupData),

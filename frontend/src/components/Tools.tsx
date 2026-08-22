@@ -83,7 +83,7 @@ const Tools: React.FC<ToolsProps> = ({ selectedMailbox, selectedTenant, onError,
     try {
       invalidateMailboxCache();
       onSuccess?.('Mailbox cache cleared and will reload on next search');
-    } catch (error) {
+    } catch {
       onError?.('Failed to reload cache');
     } finally {
       setIsReloadingCache(false);

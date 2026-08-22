@@ -159,11 +159,20 @@ const startServer = async () => {
     await initDatabase();
     
     // Start server
-    app.listen(PORT, () => {
+    const server = app.listen(PORT, () => {
       console.log(`🚀 E3 Package Manager API running on port ${PORT}`);
       console.log(`📊 Health check: http://localhost:${PORT}/health`);
       console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
       console.log(`💾 Database: SQLite (${process.env.ELECTRON_MODE === 'true' ? 'Electron' : 'Dev'} mode)`);
+    });
+
+    server.on('error', (err) => {
+      if (err.code === 'EADDRINUSE') {
+        console.error(`❌ Port ${PORT} is already in use — is another copy of the app running?`);
+      } else {
+        console.error('❌ Server error:', err);
+      }
+      process.exit(1);
     });
   } catch (err) {
     console.error('Failed to start server:', err);

@@ -37,3 +37,6 @@ database.sqlite*
 backend/database.sqlite*
 **/database.sqlite*
 db/
+
+# Electron build output
+dist-electron/

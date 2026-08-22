@@ -5,10 +5,11 @@
   "main": "electron/main.js",
   "scripts": {
     "electron:dev": "electron .",
-    "electron:build": "electron-builder --windows",
-    "electron:build:all": "electron-builder --windows --mac --linux",
-    "prebuild": "cd frontend && npm run build",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build:frontend": "cd frontend && npm run build",
+    "preelectron:build": "npm run build:frontend",
+    "electron:build": "electron-builder",
+    "preelectron:build:all": "npm run build:frontend",
+    "electron:build:all": "electron-builder --windows --mac --linux"
   },
   "repository": {
     "type": "git",
@@ -20,8 +21,8 @@
     "barcode-scanner",
     "inventory"
   ],
-  "author": "E3 Package Manager Team",
-  "license": "ISC",
+  "author": "Javier Ibarra <javieribarra.dev@gmail.com>",
+  "license": "MIT",
   "type": "commonjs",
   "bugs": {
     "url": "https://github.com/generaljudas/E3-Package-Management/issues"
@@ -35,26 +36,30 @@
     "appId": "com.e3.package-manager",
     "productName": "E3 Package Manager",
     "directories": {
-      "output": "dist-electron"
+      "output": "dist-electron",
+      "buildResources": "build-resources"
     },
     "files": [
       "electron/**/*",
-      "backend/**/*",
       "frontend/dist/**/*",
-      "!backend/node_modules/**/*",
-      "!backend/database.sqlite",
       "package.json"
     ],
     "extraResources": [
       {
+        "from": "backend/src",
+        "to": "backend/src"
+      },
+      {
+        "from": "backend/package.json",
+        "to": "backend/package.json"
+      },
+      {
         "from": "backend/node_modules",
-        "to": "backend/node_modules",
-        "filter": ["**/*"]
+        "to": "backend/node_modules"
       }
     ],
     "win": {
-      "target": ["nsis"],
-      "icon": "frontend/public/icon.svg"
+      "target": ["nsis"]
     },
     "nsis": {
       "oneClick": false,
@@ -65,13 +70,11 @@
     },
     "mac": {
       "target": ["dmg"],
-      "category": "public.app-category.business",
-      "icon": "frontend/public/icon.svg"
+      "category": "public.app-category.business"
     },
     "linux": {
       "target": ["AppImage"],
-      "category": "Office",
-      "icon": "frontend/public/icon.svg"
+      "category": "Office"
     }
   }
 }

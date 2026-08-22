@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import PackageIntake from './components/PackageIntake';
 import PackagePickup from './components/PackagePickup';
 import Tools from './components/Tools';
@@ -100,17 +100,15 @@ function Dashboard() {
             selectedMailbox={selectedMailbox}
             selectedTenant={selectedTenant}
             onSuccess={(pickupData) => {
-              const count =
-                (pickupData && pickupData.pickup_summary && pickupData.pickup_summary.packages_picked_up) ??
-                (Array.isArray(pickupData?.packages) ? pickupData.packages.length : undefined) ??
-                (Array.isArray(pickupData?.package_ids) ? pickupData.package_ids.length : undefined) ??
-                0;
-
-              const plural = count === 1 ? '' : 's';
-              if (pickupData.offline) {
-                showToast('info', `Pickup queued for sync: ${count} package${plural}`);
+              if ('offline' in pickupData) {
+                const count = pickupData.package_ids.length;
+                showToast('info', `Pickup queued for sync: ${count} package${count === 1 ? '' : 's'}`);
               } else {
-                showToast('success', `Pickup completed: ${count} package${plural}`);
+                const count =
+                  pickupData.pickup_summary?.packages_picked_up ??
+                  pickupData.packages?.length ??
+                  0;
+                showToast('success', `Pickup completed: ${count} package${count === 1 ? '' : 's'}`);
               }
             }}
             onError={(error) => showToast('error', error)}
@@ -146,7 +144,7 @@ function Dashboard() {
 
       <ToastContainer toasts={toasts} onRemoveToast={removeToast} />
       <OfflineDebugPanel />
-      <TestIdOverlay />
+      {import.meta.env.DEV && <TestIdOverlay />}
     </div>
   );
 }
