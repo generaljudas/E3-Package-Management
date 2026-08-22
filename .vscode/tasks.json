@@ -94,26 +94,6 @@
 			}
 		},
 		{
-			"label": "Setup Database",
-			"type": "shell",
-			"command": "psql",
-			"args": [
-				"e3_package_manager",
-				"-f",
-				"database_schema.sql"
-			],
-			"options": {
-				"cwd": "${workspaceFolder}/backend"
-			},
-			"group": "build",
-			"presentation": {
-				"echo": true,
-				"reveal": "always",
-				"focus": true,
-				"panel": "shared"
-			}
-		},
-		{
 			"label": "Install All Dependencies",
 			"dependsOrder": "sequence",
 			"dependsOn": [
@@ -145,14 +125,6 @@
 				"cwd": "${workspaceFolder}/frontend"
 			},
 			"group": "build"
-		},
-		{
-			"label": "Start Full Development Environment",
-			"type": "shell",
-			"command": "echo",
-			"args": [
-				"Note: This tool runs the existing VS Code task that launches both servers."
-			]
 		}
 	]
 }
