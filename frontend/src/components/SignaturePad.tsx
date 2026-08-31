@@ -198,7 +198,7 @@ export const SignaturePad: React.FC<SignaturePadProps> = ({
         
         {isEmpty && !disabled && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none" data-testid="signature-pad-placeholder">
-            <div className="text-gray-400 text-center">
+            <div className="text-gray-500 text-center">
                 <div className="text-2xl mb-2" data-testid="signature-pad-placeholder-icon">✍️</div>
               <p className="text-sm" data-testid="signature-pad-placeholder-text">Sign here</p>
             </div>
@@ -223,7 +223,7 @@ export const SignaturePad: React.FC<SignaturePadProps> = ({
           type="button"
           onClick={clearSignature}
           disabled={isEmpty || disabled}
-          className="text-sm text-red-600 hover:text-red-800 disabled:text-gray-400 disabled:cursor-not-allowed"
+          className="text-sm text-red-600 hover:text-red-800 disabled:text-gray-500 disabled:cursor-not-allowed"
           data-testid="signature-pad-clear"
         >
           Clear Signature

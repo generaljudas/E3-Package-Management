@@ -292,7 +292,7 @@ const SignatureRetrieval: React.FC<SignatureRetrievalProps> = ({ onError, onSucc
                 data-testid="tracking-search-button"
                 style={{
                   flex: 1,
-                  background: isSearching ? '#9ca3af' : 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+                  background: isSearching ? '#6b7280' : 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
                   color: 'white',
                   padding: '0.625rem 1rem',
                   borderRadius: 'var(--radius-md)',
@@ -405,7 +405,7 @@ const SignatureRetrieval: React.FC<SignatureRetrievalProps> = ({ onError, onSucc
                 data-testid="advanced-search-button"
                 style={{
                   flex: 1,
-                  background: isSearching ? '#9ca3af' : 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+                  background: isSearching ? '#6b7280' : 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
                   color: 'white',
                   padding: '0.625rem 1rem',
                   borderRadius: 'var(--radius-md)',
@@ -620,7 +620,7 @@ const SignatureRetrieval: React.FC<SignatureRetrievalProps> = ({ onError, onSucc
 
       {/* Empty State */}
       {packages.length === 0 && !selectedPackage && (
-        <div className="text-center py-12 text-gray-400">
+        <div className="text-center py-12 text-gray-500">
           <div className="text-5xl mb-3">🔍</div>
           <div className="font-medium text-gray-600">
             {searchMode === 'tracking' 

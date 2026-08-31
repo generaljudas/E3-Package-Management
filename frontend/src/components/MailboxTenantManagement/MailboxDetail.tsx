@@ -23,7 +23,7 @@ export const MailboxDetail: React.FC<MailboxDetailProps> = ({
       {/* Header Section */}
       <div 
         style={{
-          background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+          background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
           borderRadius: 'var(--radius-lg)',
           padding: '1.25rem 1.5rem',
           boxShadow: 'var(--shadow-lg)',
@@ -62,7 +62,7 @@ export const MailboxDetail: React.FC<MailboxDetailProps> = ({
             onClick={() => onDeleteMailbox(mailbox)}
             className="btn"
             style={{
-              background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+              background: 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)',
               color: 'white',
               padding: '0.625rem 1.25rem',
               fontSize: '0.875rem',
@@ -108,7 +108,7 @@ export const MailboxDetail: React.FC<MailboxDetailProps> = ({
             </h5>
             <span 
               style={{
-                background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+                background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
                 color: 'white',
                 padding: '0.1875rem 0.625rem',
                 borderRadius: 'var(--radius-full)',
@@ -123,7 +123,7 @@ export const MailboxDetail: React.FC<MailboxDetailProps> = ({
             onClick={onAddTenant}
             className="btn"
             style={{
-              background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+              background: 'linear-gradient(135deg, #047857 0%, #065f46 100%)',
               color: 'white',
               padding: '0.625rem 1.25rem',
               fontSize: '0.875rem',
@@ -160,7 +160,7 @@ export const MailboxDetail: React.FC<MailboxDetailProps> = ({
                 onClick={onAddTenant}
                 className="btn"
                 style={{
-                  background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                  background: 'linear-gradient(135deg, #047857 0%, #065f46 100%)',
                   color: 'white',
                   padding: '0.625rem 1.25rem',
                   fontSize: '0.875rem',
@@ -258,7 +258,7 @@ export const MailboxDetail: React.FC<MailboxDetailProps> = ({
                           onClick={() => onEditTenant(tenant)}
                           className="btn"
                           style={{
-                            background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+                            background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
                             color: 'white',
                             padding: '0.75rem 1.25rem',
                             fontSize: '0.875rem',
@@ -272,7 +272,7 @@ export const MailboxDetail: React.FC<MailboxDetailProps> = ({
                           onClick={() => onDeleteTenant(tenant)}
                           className="btn"
                           style={{
-                            background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+                            background: 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)',
                             color: 'white',
                             padding: '0.75rem 1.25rem',
                             fontSize: '0.875rem',

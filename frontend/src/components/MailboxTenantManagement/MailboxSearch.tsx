@@ -92,7 +92,7 @@ export const MailboxSearch: React.FC<MailboxSearchProps> = ({
       {/* Hero Header */}
       <div 
         style={{
-          background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+          background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
           borderRadius: 'var(--radius-lg)',
           padding: '2rem 2rem',
           boxShadow: 'var(--shadow-lg)',
@@ -167,7 +167,7 @@ export const MailboxSearch: React.FC<MailboxSearchProps> = ({
                 top: '50%',
                 right: '1.25rem',
                 transform: 'translateY(-50%)',
-                color: '#9ca3af',
+                color: '#6b7280',
                 fontSize: '1.25rem',
                 fontWeight: '600',
                 cursor: 'pointer',
@@ -182,7 +182,7 @@ export const MailboxSearch: React.FC<MailboxSearchProps> = ({
                 e.currentTarget.style.background = '#fee2e2';
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.color = '#9ca3af';
+                e.currentTarget.style.color = '#6b7280';
                 e.currentTarget.style.background = 'transparent';
               }}
               data-testid="clear-search-button"
@@ -257,7 +257,7 @@ export const MailboxSearch: React.FC<MailboxSearchProps> = ({
                     </h5>
                     <p style={{ 
                       fontSize: '0.6875rem', 
-                      color: '#9ca3af',
+                      color: '#6b7280',
                       fontWeight: '500',
                       margin: 0
                     }}>
@@ -330,7 +330,7 @@ export const MailboxSearch: React.FC<MailboxSearchProps> = ({
           </p>
           <p style={{ 
             fontSize: '0.8125rem', 
-            color: '#9ca3af',
+            color: '#6b7280',
             marginBottom: '1.25rem'
           }}>
             Try a different search term or create a new mailbox
@@ -349,7 +349,7 @@ export const MailboxSearch: React.FC<MailboxSearchProps> = ({
         <button
           onClick={onAddMailbox}
           style={{
-            background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+            background: 'linear-gradient(135deg, #047857 0%, #065f46 100%)',
             color: 'white',
             padding: '1.25rem',
             borderRadius: 'var(--radius-lg)',
@@ -381,7 +381,7 @@ export const MailboxSearch: React.FC<MailboxSearchProps> = ({
         <button
           onClick={onViewAll}
           style={{
-            background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+            background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
             color: 'white',
             padding: '1.25rem',
             borderRadius: 'var(--radius-lg)',

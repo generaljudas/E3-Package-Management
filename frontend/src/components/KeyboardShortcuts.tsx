@@ -73,7 +73,7 @@ export default function KeyboardShortcuts({ enabled = true, label = 'Keyboard sh
                 s.keys.map((k, i) => (
                   <React.Fragment key={`${k}-${i}`}>
                     <Keycap>{k}</Keycap>
-                    {i < s.keys.length - 1 && <span className="text-gray-400 text-xs px-1">+</span>}
+                    {i < s.keys.length - 1 && <span className="text-gray-500 text-xs px-1">+</span>}
                   </React.Fragment>
                 ))
               ) : (

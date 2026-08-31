@@ -41,7 +41,7 @@ export const MailboxList: React.FC<MailboxListProps> = ({
       {/* Header with gradient */}
       <div 
         style={{
-          background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+          background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
           borderRadius: 'var(--radius-lg)',
           padding: '1.25rem 1.5rem',
           boxShadow: 'var(--shadow-lg)',
@@ -69,7 +69,7 @@ export const MailboxList: React.FC<MailboxListProps> = ({
           onClick={onAddMailbox}
           className="btn"
           style={{
-            background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+            background: 'linear-gradient(135deg, #047857 0%, #065f46 100%)',
             color: 'white',
             padding: '0.625rem 1.25rem',
             fontSize: '0.875rem',
@@ -128,7 +128,7 @@ export const MailboxList: React.FC<MailboxListProps> = ({
                 top: '50%',
                 right: '1rem',
                 transform: 'translateY(-50%)',
-                color: '#9ca3af',
+                color: '#6b7280',
                 fontSize: '1rem',
                 fontWeight: '600',
                 cursor: 'pointer',
@@ -143,7 +143,7 @@ export const MailboxList: React.FC<MailboxListProps> = ({
                 e.currentTarget.style.background = '#fee2e2';
               }}
               onMouseLeave={(e) => {
-                e.currentTarget.style.color = '#9ca3af';
+                e.currentTarget.style.color = '#6b7280';
                 e.currentTarget.style.background = 'transparent';
               }}
               data-testid="clear-search-button"
@@ -190,7 +190,7 @@ export const MailboxList: React.FC<MailboxListProps> = ({
             onClick={onAddMailbox}
             className="btn"
             style={{
-              background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+              background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
               color: 'white',
               padding: '0.625rem 1.25rem',
               fontSize: '0.875rem',
@@ -223,7 +223,7 @@ export const MailboxList: React.FC<MailboxListProps> = ({
           </p>
           <p style={{ 
             fontSize: '0.8125rem', 
-            color: '#9ca3af',
+            color: '#6b7280',
             marginBottom: '1.25rem'
           }}>
             Try searching for a different mailbox number or tenant name
@@ -232,7 +232,7 @@ export const MailboxList: React.FC<MailboxListProps> = ({
             onClick={() => setSearchQuery('')}
             className="btn"
             style={{
-              background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+              background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
               color: 'white',
               padding: '0.625rem 1.25rem',
               fontSize: '0.875rem',
@@ -333,7 +333,7 @@ export const MailboxList: React.FC<MailboxListProps> = ({
                     <div 
                       style={{
                         fontSize: '1rem',
-                        color: '#9ca3af',
+                        color: '#6b7280',
                         fontWeight: '600',
                         fontStyle: 'italic',
                         whiteSpace: 'nowrap'

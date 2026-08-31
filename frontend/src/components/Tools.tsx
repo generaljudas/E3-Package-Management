@@ -97,7 +97,7 @@ const Tools: React.FC<ToolsProps> = ({ selectedMailbox, selectedTenant, onError,
           onClick={handleBack}
           data-testid="tools-back-button"
           style={{
-            background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+            background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
             color: 'white',
             padding: '0.5rem 1rem',
             borderRadius: 'var(--radius-md)',
@@ -134,8 +134,8 @@ const Tools: React.FC<ToolsProps> = ({ selectedMailbox, selectedTenant, onError,
             data-testid="tools-reload-cache-button"
             style={{
               background: isReloadingCache 
-                ? 'linear-gradient(135deg, #9ca3af 0%, #6b7280 100%)'
-                : 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                ? 'linear-gradient(135deg, #6b7280 0%, #6b7280 100%)'
+                : 'linear-gradient(135deg, #047857 0%, #065f46 100%)',
               color: 'white',
               padding: '0.75rem 1.25rem',
               borderRadius: 'var(--radius-md)',
@@ -185,7 +185,7 @@ const Tools: React.FC<ToolsProps> = ({ selectedMailbox, selectedTenant, onError,
                     <div className="flex flex-col items-center text-center space-y-3">
                       <div className="text-5xl" style={{ filter: 'grayscale(100%)' }}>{info.icon}</div>
                       <h5 className="text-lg font-semibold text-gray-500">{tool.label}</h5>
-                      <p className="text-sm text-gray-400 leading-relaxed">{info.description}</p>
+                      <p className="text-sm text-gray-500 leading-relaxed">{info.description}</p>
                       <span className="absolute top-2 right-2 text-xs bg-gray-200 text-gray-600 px-2 py-1 rounded-full font-medium">
                         Coming Soon
                       </span>

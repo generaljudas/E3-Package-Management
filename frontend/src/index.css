@@ -23,6 +23,8 @@
   --color-gray-100: #f3f4f6;
   --color-gray-200: #e5e7eb;
   --color-gray-300: #d1d5db;
+  --color-gray-400: #9ca3af;
+  --color-gray-500: #6b7280;
   --color-gray-600: #4b5563;
   --color-gray-700: #374151;
   --color-gray-800: #1f2937;
@@ -111,19 +113,9 @@ body {
   grid-template-columns: repeat(1, minmax(0, 1fr));
 }
 
-@media (min-width: 1024px) {
-  .lg\\:grid-cols-3 {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-  
-  .lg\\:col-span-1 {
-    grid-column: span 1 / span 1;
-  }
-  
-  .lg\\:col-span-2 {
-    grid-column: span 2 / span 2;
-  }
-}
+/* lg: responsive grid utilities now come from the real Tailwind build
+   (the hand-written versions here had double-escaped selectors that
+   never matched anything). */
 
 .gap-6 {
   gap: 1.5rem;
@@ -275,7 +267,8 @@ body {
 }
 
 .input-field::placeholder {
-  color: var(--color-gray-400);
+  /* gray-500: lightest gray that clears WCAG AA 4.5:1 on white */
+  color: var(--color-gray-500);
   font-weight: 400;
 }
 
@@ -292,10 +285,13 @@ body {
 /* Enhanced focus visibility for keyboard navigation */
 button:focus-visible,
 select:focus-visible,
-input:focus-visible {
-  outline: 3px solid var(--color-primary);
+input:focus-visible,
+a:focus-visible,
+[tabindex]:focus-visible {
+  outline: 3px solid var(--color-primary-darker);
   outline-offset: 2px;
-  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15);
+  /* inner white ring keeps the indicator visible on blue/dark backgrounds */
+  box-shadow: 0 0 0 2px white, 0 0 0 7px rgba(29, 78, 216, 0.25);
 }
 
 /* Pseudo-class utilities (Tailwind-like) */
@@ -437,7 +433,7 @@ input:focus-visible {
 }
 
 .toast-success {
-  background-color: #059669;
+  background-color: #047857;
 }
 
 .toast-error {
@@ -513,10 +509,6 @@ input:focus-visible {
   right: 0.75rem;
 }
 
-.transform {
-  transform: var(--tw-transform);
-}
-
 .-translate-y-1\/2 {
   transform: translateY(-50%);
 }
@@ -590,7 +582,7 @@ input:focus-visible {
   cursor: pointer;
 }
 
-.hover\\:text-primary-800:hover {
+.hover\:text-primary-800:hover {
   color: #1e40af;
 }
 
@@ -616,4 +608,22 @@ input:focus-visible {
 
 .border-t-transparent {
   border-top-color: transparent;
+}
+
+/* Respect the OS reduced-motion preference: collapse all animation and
+   transition to effectively instant, and drop hover lifts. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .btn:hover,
+  .input-field:focus {
+    transform: none;
+  }
 }

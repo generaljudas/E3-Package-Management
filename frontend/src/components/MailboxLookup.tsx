@@ -382,7 +382,7 @@ export default function MailboxLookup({
                       {mailbox.default_tenant_name ? `Default: ${mailbox.default_tenant_name}` : 'No default tenant'}
                     </div>
                   </div>
-                  <div className="text-xs text-gray-400">
+                  <div className="text-xs text-gray-500">
                     ID: {mailbox.id}
                   </div>
                 </div>
@@ -449,7 +449,7 @@ export default function MailboxLookup({
                   alignItems: 'center',
                   justifyContent: 'space-between',
                   padding: '1rem 1.25rem',
-                  background: isSelected ? 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)' : 'white',
+                  background: isSelected ? 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)' : 'white',
                   borderRadius: '10px',
                   border: isSelected ? '2px solid #2563eb' : '2px solid #e5e7eb',
                   boxShadow: isSelected ? '0 4px 12px rgba(59, 130, 246, 0.25)' : '0 2px 4px rgba(0, 0, 0, 0.05)',
@@ -536,7 +536,7 @@ export default function MailboxLookup({
                         fontWeight: '600',
                         cursor: isUpdatingDefault ? 'not-allowed' : 'pointer',
                         background: isUpdatingDefault ? '#f3f4f6' : isSelected ? 'rgba(255, 255, 255, 0.2)' : '#f3f4f6',
-                        color: isUpdatingDefault ? '#9ca3af' : isSelected ? 'white' : '#374151',
+                        color: isUpdatingDefault ? '#6b7280' : isSelected ? 'white' : '#374151',
                         transition: 'all 0.2s',
                         opacity: isUpdatingDefault ? 0.5 : 1
                       }}
@@ -546,7 +546,7 @@ export default function MailboxLookup({
                           <div style={{
                             width: '12px',
                             height: '12px',
-                            border: '2px solid #9ca3af',
+                            border: '2px solid #6b7280',
                             borderTopColor: 'transparent',
                             borderRadius: '50%',
                             animation: 'spin 1s linear infinite'

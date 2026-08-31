@@ -3,7 +3,7 @@ export function AppHeader() {
     <header 
       data-testid="app-header"
       style={{
-        background: 'linear-gradient(135deg, #1e40af 0%, #3b82f6 100%)',
+        background: 'linear-gradient(135deg, #1e40af 0%, #2563eb 100%)',
         boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
         height: '64px',
         display: 'flex',
@@ -49,7 +49,7 @@ export function AppHeader() {
                 data-testid="app-subtitle"
                 style={{
                   fontSize: '0.75rem',
-                  color: 'rgba(255, 255, 255, 0.75)',
+                  color: 'white',
                   fontWeight: '500',
                   paddingLeft: '0.75rem',
                   borderLeft: '1px solid rgba(255, 255, 255, 0.3)'
@@ -65,7 +65,7 @@ export function AppHeader() {
               data-testid="app-current-datetime"
               style={{
                 fontSize: '0.875rem',
-                color: 'rgba(255, 255, 255, 0.9)',
+                color: 'white',
                 fontWeight: '500'
               }}
             >

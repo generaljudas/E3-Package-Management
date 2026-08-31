@@ -322,7 +322,7 @@ export default function TenantLookup({
                     </div>
                   )}
                 </div>
-                <div className="text-xs text-gray-400">
+                <div className="text-xs text-gray-500">
                   ID: {tenant.id}
                 </div>
               </div>

@@ -330,7 +330,7 @@ export const PackagePickup: React.FC<PackagePickupProps> = ({
             {/* Section Header */}
             <div
               style={{
-                background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                background: 'linear-gradient(135deg, #047857 0%, #065f46 100%)',
                 padding: '1rem 1.5rem',
                 borderTopLeftRadius: 'var(--radius-lg)',
                 borderTopRightRadius: 'var(--radius-lg)',
@@ -357,7 +357,7 @@ export const PackagePickup: React.FC<PackagePickupProps> = ({
                       border: 'none',
                       cursor: 'pointer',
                       background: statusFilter === filter 
-                        ? 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)'
+                        ? 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)'
                         : 'rgba(255, 255, 255, 0.9)',
                       color: statusFilter === filter ? 'white' : '#374151',
                       boxShadow: statusFilter === filter ? 'var(--shadow-sm)' : 'none',
@@ -703,7 +703,7 @@ export const PackagePickup: React.FC<PackagePickupProps> = ({
           {/* Section Header */}
           <div 
             style={{
-              background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+              background: 'linear-gradient(135deg, #b45309 0%, #92400e 100%)',
               padding: '1rem 1.5rem',
               borderTopLeftRadius: 'var(--radius-lg)',
               borderTopRightRadius: 'var(--radius-lg)',

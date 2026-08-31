@@ -220,7 +220,7 @@ export const PackageIntake: React.FC<PackageIntakeProps> = ({
         {/* Section Header */}
         <div 
           style={{
-            background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+            background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
             padding: '1rem 1.5rem',
             borderTopLeftRadius: 'var(--radius-lg)',
             borderTopRightRadius: 'var(--radius-lg)',
@@ -246,8 +246,8 @@ export const PackageIntake: React.FC<PackageIntakeProps> = ({
             className="btn"
             style={{
               background: isScannerActive 
-                ? 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)' 
-                : 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                ? 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)' 
+                : 'linear-gradient(135deg, #047857 0%, #065f46 100%)',
               color: 'white',
               padding: '0.5rem 1.25rem',
               fontSize: '0.875rem',
@@ -356,7 +356,7 @@ export const PackageIntake: React.FC<PackageIntakeProps> = ({
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                       <span style={{ 
-                        background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+                        background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
                         color: 'white',
                         padding: '0.25rem 0.5rem',
                         borderRadius: 'var(--radius-sm)',

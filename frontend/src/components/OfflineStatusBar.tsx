@@ -32,7 +32,7 @@ export const OfflineStatusBar: React.FC = () => {
 
       {/* Sync pending indicator when online */}
       {status.isOnline && status.queuedOperationsCount > 0 && (
-        <div className="bg-yellow-600 text-white px-4 py-2 text-center text-sm font-medium" data-testid="offline-syncing-banner">
+        <div className="bg-yellow-700 text-white px-4 py-2 text-center text-sm font-medium" data-testid="offline-syncing-banner">
           <span className="inline-flex items-center">
             <div className="w-2 h-2 bg-white rounded-full mr-2 animate-spin"></div>
             Syncing {status.queuedOperationsCount} operations...
@@ -48,8 +48,8 @@ export const OfflineStatusBar: React.FC = () => {
             className={`
               px-4 py-3 rounded-lg shadow-lg text-white text-sm font-medium
               cursor-pointer transition-all duration-300 animate-slide-up
-              ${notification.type === 'queued' ? 'bg-yellow-600' : ''}
-              ${notification.type === 'synced' ? 'bg-green-600' : ''}
+              ${notification.type === 'queued' ? 'bg-yellow-700' : ''}
+              ${notification.type === 'synced' ? 'bg-green-700' : ''}
               ${notification.type === 'error' ? 'bg-red-600' : ''}
             `}
             onClick={() => dismissNotification(notification.id)}

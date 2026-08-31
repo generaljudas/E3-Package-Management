@@ -66,8 +66,8 @@ export const TenantForm: React.FC<TenantFormProps> = ({
         <div 
           style={{
             background: isEdit 
-              ? 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)'
-              : 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+              ? 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)'
+              : 'linear-gradient(135deg, #047857 0%, #065f46 100%)',
             padding: '1.5rem 2rem',
             borderTopLeftRadius: 'var(--radius-lg)',
             borderTopRightRadius: 'var(--radius-lg)',
@@ -132,7 +132,7 @@ export const TenantForm: React.FC<TenantFormProps> = ({
                   marginBottom: '0.75rem',
                 }}
               >
-                📧 Email <span style={{ color: '#9ca3af', fontWeight: '400', fontSize: '0.875rem' }}>(Optional)</span>
+                📧 Email <span style={{ color: '#6b7280', fontWeight: '400', fontSize: '0.875rem' }}>(Optional)</span>
               </label>
               <input
                 id="tenant-email"
@@ -162,7 +162,7 @@ export const TenantForm: React.FC<TenantFormProps> = ({
                   marginBottom: '0.75rem',
                 }}
               >
-                📱 Phone <span style={{ color: '#9ca3af', fontWeight: '400', fontSize: '0.875rem' }}>(Optional)</span>
+                📱 Phone <span style={{ color: '#6b7280', fontWeight: '400', fontSize: '0.875rem' }}>(Optional)</span>
               </label>
               <input
                 id="tenant-phone"
@@ -190,10 +190,10 @@ export const TenantForm: React.FC<TenantFormProps> = ({
               style={{
                 flex: 1,
                 background: loading 
-                  ? '#9ca3af' 
+                  ? '#6b7280' 
                   : isEdit 
-                    ? 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)'
-                    : 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                    ? 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)'
+                    : 'linear-gradient(135deg, #047857 0%, #065f46 100%)',
                 color: 'white',
                 padding: '1rem 1.5rem',
                 fontSize: '1rem',

@@ -6,20 +6,22 @@ interface ToastProps extends ToastMessage {
 }
 
 const toastStyles: Record<ToastMessage['type'], { background: string; icon: string }> = {
+  // Gradient stops chosen so white text clears WCAG AA 4.5:1 at the
+  // lightest stop (success 5.48, error 4.83, warning 5.02, info 5.17).
   success: {
-    background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+    background: 'linear-gradient(135deg, #047857 0%, #065f46 100%)',
     icon: '✓'
   },
   error: {
-    background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+    background: 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)',
     icon: '✕'
   },
   warning: {
-    background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+    background: 'linear-gradient(135deg, #b45309 0%, #92400e 100%)',
     icon: '⚠'
   },
   info: {
-    background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+    background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
     icon: 'ℹ'
   }
 };

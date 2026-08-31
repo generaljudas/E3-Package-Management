@@ -76,7 +76,7 @@ export const MailboxForm: React.FC<MailboxFormProps> = ({
       >
         <div 
           style={{
-            background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+            background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
             padding: '1.5rem 2rem',
             borderTopLeftRadius: 'var(--radius-lg)',
             borderTopRightRadius: 'var(--radius-lg)',
@@ -156,7 +156,7 @@ export const MailboxForm: React.FC<MailboxFormProps> = ({
                 type="button"
                 onClick={handleAddTenant}
                 style={{
-                  background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
+                  background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
                   color: 'white',
                   padding: '0.5rem 1rem',
                   fontSize: '0.875rem',
@@ -327,7 +327,7 @@ export const MailboxForm: React.FC<MailboxFormProps> = ({
               className="btn"
               style={{
                 flex: 1,
-                background: loading ? '#9ca3af' : 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                background: loading ? '#6b7280' : 'linear-gradient(135deg, #047857 0%, #065f46 100%)',
                 color: 'white',
                 padding: '1rem 1.5rem',
                 fontSize: '1rem',

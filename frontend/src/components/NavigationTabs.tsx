@@ -41,8 +41,8 @@ export function NavigationTabs({ currentView, onViewChange, tabs }: NavigationTa
                 border: 'none',
                 cursor: 'pointer',
                 transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                background: isActive 
-                  ? 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)'
+                background: isActive
+                  ? 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)'
                   : 'transparent',
                 color: isActive ? 'white' : '#4b5563',
                 boxShadow: isActive 
