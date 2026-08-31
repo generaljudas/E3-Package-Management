@@ -9,17 +9,21 @@ export const OfflineStatusBar: React.FC = () => {
   const status = useOfflineStatus();
   const { notifications, dismissNotification } = useOfflineNotifications();
 
-  if (status.isOnline && status.queuedOperationsCount === 0) {
-    return null; // Don't show anything when online with no queued operations
-  }
-
+  // The wrapper stays mounted even when there is nothing to show — a live
+  // region only announces changes that happen inside an already-rendered
+  // node, so unmounting it would silence every offline/sync transition.
   return (
-    <div className="fixed top-0 left-0 right-0 z-50" data-testid="offline-status-root">
+    <div
+      className="fixed top-0 left-0 right-0 z-50"
+      role="status"
+      aria-live="polite"
+      data-testid="offline-status-root"
+    >
       {/* Main status bar */}
       {!status.isOnline && (
         <div className="bg-red-600 text-white px-4 py-2 text-center text-sm font-medium" data-testid="offline-status-banner">
           <span className="inline-flex items-center">
-            <div className="w-2 h-2 bg-white rounded-full mr-2 animate-pulse"></div>
+            <div className="w-2 h-2 bg-white rounded-full mr-2 animate-pulse" aria-hidden="true"></div>
             Working Offline
             {status.queuedOperationsCount > 0 && (
               <span className="ml-2 bg-red-700 px-2 py-1 rounded text-xs" data-testid="offline-queued-count">
@@ -34,7 +38,7 @@ export const OfflineStatusBar: React.FC = () => {
       {status.isOnline && status.queuedOperationsCount > 0 && (
         <div className="bg-yellow-700 text-white px-4 py-2 text-center text-sm font-medium" data-testid="offline-syncing-banner">
           <span className="inline-flex items-center">
-            <div className="w-2 h-2 bg-white rounded-full mr-2 animate-spin"></div>
+            <div className="w-2 h-2 bg-white rounded-full mr-2 animate-spin" aria-hidden="true"></div>
             Syncing {status.queuedOperationsCount} operations...
           </span>
         </div>

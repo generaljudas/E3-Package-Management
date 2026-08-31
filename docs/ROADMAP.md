@@ -37,19 +37,19 @@ only, not restyling.
 | 0 | PII purge from git history | ✅ Done | `6ac507f` |
 | 1 | Truth & hygiene pass (README, LICENSE, versions, dead files) | ✅ Done | `dc7fb79` |
 | 2 | Make the packaged desktop app actually work | ✅ Done | `c1ea055` |
-| 3 | Accessibility to WCAG 2.2 AA | ❌ Not started | — |
-| 4 | Docs restructure, screenshots, GitHub release | 🟡 Partial | `docs/DOCUMENTATION.md` written, uncommitted |
+| 3 | Accessibility to WCAG 2.2 AA | 🟡 In progress | contrast batch + mechanical a11y batch, `fix(a11y)` commits |
+| 4 | Docs restructure, screenshots, GitHub release | 🟡 Partial | `docs/DOCUMENTATION.md` committed (`f8eaf90`) |
 
 Phases 0–2 fixed the app itself: the packaged installer used to fail to build, and even
 when it did build it hung silently forever (system-`node` spawn that doesn't exist on
 end-user machines, backend pointed inside the unreadable asar, DB writing to a read-only
 path, blank window from absolute asset paths). None of that touches "easy to install for
 a non-technical operator" — it only means the app runs at all once installed. **Phases 3
-and 4 are what the mission statement above actually depends on, and neither is done.**
+and 4 are what the mission statement above actually depends on.**
 
 ---
 
-## Phase 3 — Accessibility (WCAG 2.2 AA) — not started
+## Phase 3 — Accessibility (WCAG 2.2 AA) — in progress
 
 Order of work, per the original plan (each layer blocks the next): keyboard operability →
 screen reader → contrast/visible focus → reduced motion. Semantic/markup changes only,
@@ -63,20 +63,24 @@ no restyling.
 - ~298 `<div>` vs ~87 semantic elements
 - Zero `prefers-reduced-motion` support
 
-**Contrast/motion audit findings** (completed, never previously delivered):
-- [ ] **`OfflineStatusBar` renders white-on-white — 1.05:1 contrast, effectively invisible.** Root cause (verified against the built CSS, which contains zero compiled color utilities): the Tailwind utility layer is entirely dead — `src/tailwind.css` still uses v3 `@tailwind` directives and there's a leftover v3 `tailwind.config.js` (with a `tw-` prefix no component actually uses), neither of which Tailwind v4's PostCSS plugin loads. No `bg-*`/`text-*` utility compiles anywhere in the app. This is the sharpest finding: an operator with a queued offline package would see no indication it isn't synced.
-- [ ] All 4 toast variants fail contrast at their gradient's light stop (worst: warning toast, 2.15:1)
-- [ ] App header `<h1>` and active nav tabs fail at 3.68:1
-- [ ] Primary (green submit) and destructive (red delete) buttons fail contrast
-- [ ] Focus outline is invisible against the header's own blue background
-- [ ] Input and secondary-button borders sit at 1.24–1.47:1 — no visible boundary
-- [ ] 17 hardcoded `#9ca3af` muted-text instances fail contrast
-- [ ] Three undefined CSS custom properties (`--color-gray-400`/`500`) silently break placeholder styling
+**Contrast/motion audit findings** (completed, never previously delivered —
+**all fixed 2026-08-31**, see the `fix(a11y)` commits; ratios verified
+programmatically and views verified in the running app):
+- [x] **`OfflineStatusBar` renders white-on-white — 1.05:1 contrast, effectively invisible.** Root cause (verified against the built CSS, which contains zero compiled color utilities): the Tailwind utility layer is entirely dead — `src/tailwind.css` still uses v3 `@tailwind` directives and there's a leftover v3 `tailwind.config.js` (with a `tw-` prefix no component actually uses), neither of which Tailwind v4's PostCSS plugin loads. No `bg-*`/`text-*` utility compiles anywhere in the app. This is the sharpest finding: an operator with a queued offline package would see no indication it isn't synced.
+- [x] All 4 toast variants fail contrast at their gradient's light stop (worst: warning toast, 2.15:1)
+- [x] App header `<h1>` and active nav tabs fail at 3.68:1
+- [x] Primary (green submit) and destructive (red delete) buttons fail contrast
+- [x] Focus outline is invisible against the header's own blue background
+- [x] Input and secondary-button borders sit at 1.24–1.47:1 — no visible boundary
+- [x] 17 hardcoded `#9ca3af` muted-text instances fail contrast
+- [x] Three undefined CSS custom properties (`--color-gray-400`/`500`) silently break placeholder styling
 
-**Interactive-element / keyboard audit**: dispatched in the original session but killed
-by the rate limit before producing any findings. Needs to be run from scratch — covers
-click-targets without keyboard handling, unlabeled form controls, dialog/modal focus-trap
-coverage, semantic structure.
+**Interactive-element / keyboard audit**: re-run from scratch on 2026-08-31 — ~60
+findings across 20 components, tracked with their own checklist in
+[A11Y_AUDIT.md](A11Y_AUDIT.md). The High-severity mechanical batch (positive
+tabIndex removal, input labeling, toast/offline live regions, aria-pressed/
+aria-current on toggles and tabs, error association, table semantics, main
+landmark) is fixed; judgment items remain — see that file.
 
 **Dev-only overlays** (Offline Status debug panel, Test IDs pill) already gated out of
 production in Phase 2 — screenshots should no longer show them once retaken.
@@ -115,8 +119,9 @@ Decided deliberately, not forgotten:
 
 ## Suggested next action
 
-1. Start Phase 3 with the contrast fixes above — they're concrete, already diagnosed, and
-   the highest-leverage item for the "minimal computer knowledge required" goal (an
-   invisible offline indicator is a real trap for the target user).
-2. Rerun the interactive-element/keyboard audit that was killed mid-flight.
-3. Phase 4 cleanup and release once Phase 3 lands.
+1. Finish Phase 3: the judgment items in [A11Y_AUDIT.md](A11Y_AUDIT.md) — combobox
+   semantics for MailboxLookup (H8), step-flow focus management (H9), and the keyboard
+   alternative for signature capture (H10, needs a product decision) — plus the
+   remaining mechanical medium items (M2/M3/M5–M7).
+2. Phase 4 cleanup and release once Phase 3 lands: CHANGELOG/CONTRIBUTING, fresh
+   screenshots, tag `v1.0.0-beta.1`, unsigned-installer warning walkthrough.

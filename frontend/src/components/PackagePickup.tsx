@@ -347,6 +347,7 @@ export const PackagePickup: React.FC<PackagePickupProps> = ({
                   <button
                     key={filter}
                     onClick={() => setStatusFilter(filter)}
+                    aria-pressed={statusFilter === filter}
                     data-testid={`pickup-filter-${filter}`}
                     style={{
                       padding: '0.5rem 1rem',
@@ -406,8 +407,8 @@ export const PackagePickup: React.FC<PackagePickupProps> = ({
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="🔍 Search by tracking number, carrier, or recipient..."
+                aria-label="Search packages by tracking number, carrier, or recipient"
                 className="input-field"
-                tabIndex={1}
                 data-testid="pickup-search-input"
                 style={{ flex: 1 }}
               />
@@ -489,12 +490,13 @@ export const PackagePickup: React.FC<PackagePickupProps> = ({
                   data-testid="pickup-table-container"
                 >
                   <div style={{ overflowX: 'auto', width: '100%' }}>
-                    <table 
-                      style={{ 
-                        width: '100%', 
+                    <table
+                      style={{
+                        width: '100%',
                         tableLayout: 'fixed',
                         fontSize: '0.875rem'
                       }}
+                      aria-label="Packages"
                       data-testid="pickup-table"
                     >
                       <colgroup>
@@ -517,13 +519,13 @@ export const PackagePickup: React.FC<PackagePickupProps> = ({
                         }}
                       >
                         <tr>
-                          {!selectedMailbox && <th style={{ padding: '0.75rem 0.5rem', textAlign: 'left' }} data-testid="pickup-col-mailbox">Mailbox</th>}
-                          <th style={{ padding: '0.75rem 0.5rem', textAlign: 'left' }} data-testid="pickup-col-tracking">Tracking</th>
-                          <th style={{ padding: '0.75rem 0.5rem', textAlign: 'left' }} data-testid="pickup-col-tenant">Tenant</th>
-                          <th style={{ padding: '0.75rem 0.5rem', textAlign: 'left' }} data-testid="pickup-col-status">Status</th>
-                          <th style={{ padding: '0.75rem 0.5rem', textAlign: 'left' }} data-testid="pickup-col-carrier">Carrier</th>
-                          <th style={{ padding: '0.75rem 0.5rem', textAlign: 'left' }} data-testid="pickup-col-received">Received</th>
-                          <th style={{ padding: '0.75rem 0.5rem', textAlign: 'left' }} data-testid="pickup-col-pickup-date">Pick up date</th>
+                          {!selectedMailbox && <th scope="col" style={{ padding: '0.75rem 0.5rem', textAlign: 'left' }} data-testid="pickup-col-mailbox">Mailbox</th>}
+                          <th scope="col" style={{ padding: '0.75rem 0.5rem', textAlign: 'left' }} data-testid="pickup-col-tracking">Tracking</th>
+                          <th scope="col" style={{ padding: '0.75rem 0.5rem', textAlign: 'left' }} data-testid="pickup-col-tenant">Tenant</th>
+                          <th scope="col" style={{ padding: '0.75rem 0.5rem', textAlign: 'left' }} data-testid="pickup-col-status">Status</th>
+                          <th scope="col" style={{ padding: '0.75rem 0.5rem', textAlign: 'left' }} data-testid="pickup-col-carrier">Carrier</th>
+                          <th scope="col" style={{ padding: '0.75rem 0.5rem', textAlign: 'left' }} data-testid="pickup-col-received">Received</th>
+                          <th scope="col" style={{ padding: '0.75rem 0.5rem', textAlign: 'left' }} data-testid="pickup-col-pickup-date">Pick up date</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -670,9 +672,8 @@ export const PackagePickup: React.FC<PackagePickupProps> = ({
                     </p>
                   </div>
                   <button 
-                    onClick={startPickupProcess} 
-                    className="btn btn-primary" 
-                    tabIndex={2} 
+                    onClick={startPickupProcess}
+                    className="btn btn-primary"
                     data-testid="pickup-proceed"
                     style={{
                       padding: '0.75rem 1.75rem',

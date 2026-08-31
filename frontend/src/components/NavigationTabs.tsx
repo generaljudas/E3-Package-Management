@@ -24,7 +24,7 @@ export function NavigationTabs({ currentView, onViewChange, tabs }: NavigationTa
         border: '1px solid rgba(0, 0, 0, 0.05)'
       }}
     >
-      <nav style={{ display: 'flex', gap: '8px' }} data-testid="app-navigation-buttons">
+      <nav style={{ display: 'flex', gap: '8px' }} aria-label="Main views" data-testid="app-navigation-buttons">
         {tabs.map(tab => {
           const isActive = currentView === tab.id;
           return (
@@ -32,6 +32,7 @@ export function NavigationTabs({ currentView, onViewChange, tabs }: NavigationTa
               key={tab.id}
               data-testid={`app-nav-tab-${tab.id}`}
               onClick={() => onViewChange(tab.id)}
+              aria-current={isActive ? 'true' : undefined}
               style={{
                 flex: 1,
                 padding: '1.25rem 1.5rem',

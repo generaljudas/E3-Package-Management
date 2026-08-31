@@ -66,7 +66,7 @@ function Dashboard() {
       <OfflineStatusBar />
       <AppHeader />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8" style={{ display: 'flex', flexDirection: 'column', gap: '2rem', paddingTop: '2rem' }} data-testid="app-main-container">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8" style={{ display: 'flex', flexDirection: 'column', gap: '2rem', paddingTop: '2rem' }} data-testid="app-main-container">
         <NavigationTabs 
           currentView={currentView}
           onViewChange={setCurrentView}
@@ -140,7 +140,7 @@ function Dashboard() {
             )}
           </div>
         )}
-      </div>
+      </main>
 
       <ToastContainer toasts={toasts} onRemoveToast={removeToast} />
       <OfflineDebugPanel />

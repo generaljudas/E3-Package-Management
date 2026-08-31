@@ -340,6 +340,9 @@ export default function MailboxLookup({
               }
             }}
             placeholder={placeholder}
+            aria-label="Search mailbox by number or tenant name"
+            aria-invalid={!!error}
+            aria-describedby={error ? 'mailbox-lookup-error' : undefined}
             disabled={disabled || isSearching || isCacheLoading}
             className={`input-field keyboard-focus ${
               error ? 'border-red-500 ring-red-500' : ''
@@ -357,7 +360,7 @@ export default function MailboxLookup({
         </div>
 
         {error && (
-          <p className="mt-1 text-sm text-red-600">
+          <p id="mailbox-lookup-error" role="alert" className="mt-1 text-sm text-red-600">
             {error}
           </p>
         )}

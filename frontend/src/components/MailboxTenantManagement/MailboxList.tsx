@@ -108,6 +108,7 @@ export const MailboxList: React.FC<MailboxListProps> = ({
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search by mailbox number or tenant name..."
+            aria-label="Filter mailboxes by number or tenant name"
             className="input-field"
             style={{
               width: '100%',

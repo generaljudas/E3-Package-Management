@@ -216,6 +216,7 @@ const SignatureRetrieval: React.FC<SignatureRetrievalProps> = ({ onError, onSucc
             setSearchMode('tracking');
             handleReset();
           }}
+          aria-pressed={searchMode === 'tracking'}
           data-testid="search-mode-tracking"
           style={{
             padding: '0.5rem 1.5rem',
@@ -235,6 +236,7 @@ const SignatureRetrieval: React.FC<SignatureRetrievalProps> = ({ onError, onSucc
             setSearchMode('advanced');
             handleReset();
           }}
+          aria-pressed={searchMode === 'advanced'}
           data-testid="search-mode-advanced"
           style={{
             padding: '0.5rem 1.5rem',
@@ -262,11 +264,12 @@ const SignatureRetrieval: React.FC<SignatureRetrievalProps> = ({ onError, onSucc
           /* Tracking Number Search */
           <form onSubmit={handleTrackingSearch} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="signature-tracking-number" className="block text-sm font-medium text-gray-700 mb-1">
                 Tracking Number
               </label>
               <input
                 ref={trackingInputRef}
+                id="signature-tracking-number"
                 type="text"
                 value={trackingNumber}
                 onChange={(e) => setTrackingNumber(e.target.value)}
@@ -328,9 +331,9 @@ const SignatureRetrieval: React.FC<SignatureRetrievalProps> = ({ onError, onSucc
           /* Advanced Search */
           <form onSubmit={handleAdvancedSearch} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <span className="block text-sm font-medium text-gray-700 mb-1">
                 Mailbox
-              </label>
+              </span>
               <MailboxLookup
                 onMailboxSelect={(mailbox) => {
                   setSelectedMailbox(mailbox);
@@ -361,10 +364,11 @@ const SignatureRetrieval: React.FC<SignatureRetrievalProps> = ({ onError, onSucc
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="signature-start-date" className="block text-sm font-medium text-gray-700 mb-1">
                   Start Date
                 </label>
                 <input
+                  id="signature-start-date"
                   type="date"
                   value={startDate}
                   onChange={(e) => setStartDate(e.target.value)}
@@ -379,10 +383,11 @@ const SignatureRetrieval: React.FC<SignatureRetrievalProps> = ({ onError, onSucc
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label htmlFor="signature-end-date" className="block text-sm font-medium text-gray-700 mb-1">
                   End Date
                 </label>
                 <input
+                  id="signature-end-date"
                   type="date"
                   value={endDate}
                   onChange={(e) => setEndDate(e.target.value)}

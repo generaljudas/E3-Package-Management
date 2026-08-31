@@ -146,6 +146,7 @@ export const MailboxSearch: React.FC<MailboxSearchProps> = ({
             onChange={(e) => handleSearch(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Search by mailbox number or tenant name (press Enter to select)"
+            aria-label="Search mailboxes by number or tenant name"
             className="input-field"
             style={{
               width: '100%',

@@ -36,8 +36,9 @@ export function Toast({ message, type, onClose }: ToastProps) {
   const style = toastStyles[type];
 
   return (
-    <div 
+    <div
       data-testid={`toast-${type}`}
+      role={type === 'error' ? 'alert' : undefined}
       style={{
         background: style.background,
         color: 'white',
@@ -52,8 +53,9 @@ export function Toast({ message, type, onClose }: ToastProps) {
         animation: 'slideInRight 0.3s ease-out'
       }}
     >
-      <div 
+      <div
         data-testid="toast-icon"
+        aria-hidden="true"
         style={{
           fontSize: '1.5rem',
           fontWeight: 'bold',
@@ -82,6 +84,7 @@ export function Toast({ message, type, onClose }: ToastProps) {
       <button
         data-testid="toast-close-button"
         onClick={onClose}
+        aria-label="Dismiss notification"
         style={{
           background: 'rgba(255, 255, 255, 0.2)',
           border: 'none',
@@ -113,7 +116,12 @@ interface ToastContainerProps {
 
 export function ToastContainer({ toasts, onRemoveToast }: ToastContainerProps) {
   return (
-    <div className="fixed top-4 right-4 space-y-2 z-50" data-testid="app-toast-container">
+    <div
+      className="fixed top-4 right-4 space-y-2 z-50"
+      role="status"
+      aria-live="polite"
+      data-testid="app-toast-container"
+    >
       {toasts.map(toast => (
         <Toast
           key={toast.id}

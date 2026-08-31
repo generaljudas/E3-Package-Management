@@ -278,10 +278,10 @@ export const PackageIntake: React.FC<PackageIntakeProps> = ({
               onChange={(e) => handleInputChange(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Scan or type tracking number"
+              aria-label="Tracking number"
               className="input-field"
               style={{ flex: '1' }}
               autoComplete="off"
-              tabIndex={1}
               data-testid="intake-tracking-input"
             />
             <button
@@ -433,7 +433,6 @@ export const PackageIntake: React.FC<PackageIntakeProps> = ({
           onClick={handleSubmit}
           disabled={isSubmitting || (batch.length === 0 && !formData.tracking_number.trim())}
           className="btn btn-primary"
-          tabIndex={4}
           data-testid="intake-submit"
           style={{
             display: 'flex',
