@@ -72,7 +72,7 @@ npm run dev
 - Preloaded mailbox cache for offline operation
 
 ### 📥 Package Intake
-- Barcode scanning via camera or handheld scanner
+- Barcode scanning via handheld USB scanner (keyboard-emulation mode — no camera required)
 - Keyboard-first navigation (Tab, Enter workflow)
 - Automatic tenant validation and duplicate detection
 - Simplified intake: only tracking number and tenant are required; the server infers the mailbox
