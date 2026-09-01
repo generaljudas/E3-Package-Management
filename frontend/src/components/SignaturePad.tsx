@@ -188,18 +188,20 @@ export const SignaturePad: React.FC<SignaturePadProps> = ({
           onTouchStart={startDrawing}
           onTouchMove={draw}
           onTouchEnd={stopDrawing}
-          style={{ 
+          style={{
             width: `${width}px`,
             height: `${height}px`,
             touchAction: 'none' // Prevent scrolling while drawing
           }}
+          role="img"
+          aria-label={isEmpty ? 'Signature area, empty — sign with mouse, touch, or stylus' : 'Signature area — signature captured'}
           data-testid="signature-pad-canvas"
         />
         
         {isEmpty && !disabled && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none" data-testid="signature-pad-placeholder">
             <div className="text-gray-500 text-center">
-                <div className="text-2xl mb-2" data-testid="signature-pad-placeholder-icon">✍️</div>
+                <div className="text-2xl mb-2" aria-hidden="true" data-testid="signature-pad-placeholder-icon">✍️</div>
               <p className="text-sm" data-testid="signature-pad-placeholder-text">Sign here</p>
             </div>
           </div>
@@ -215,7 +217,7 @@ export const SignaturePad: React.FC<SignaturePadProps> = ({
       </div>
 
       <div className="flex items-center justify-between mt-3" data-testid="signature-pad-controls">
-        <div className="text-xs text-gray-500" data-testid="signature-pad-status">
+        <div className="text-xs text-gray-500" role="status" data-testid="signature-pad-status">
           {isEmpty ? 'No signature' : 'Signature captured'}
         </div>
         

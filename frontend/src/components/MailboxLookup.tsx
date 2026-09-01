@@ -269,7 +269,6 @@ export default function MailboxLookup({
         e.preventDefault();
         setShowDropdown(false);
         setHighlightedIndex(-1);
-        inputRef.current?.blur();
         break;
     }
   };
@@ -343,6 +342,15 @@ export default function MailboxLookup({
             aria-label="Search mailbox by number or tenant name"
             aria-invalid={!!error}
             aria-describedby={error ? 'mailbox-lookup-error' : undefined}
+            role="combobox"
+            aria-expanded={showDropdown && searchResults.length > 0}
+            aria-autocomplete="list"
+            aria-controls="mailbox-lookup-listbox"
+            aria-activedescendant={
+              highlightedIndex >= 0 && searchResults[highlightedIndex]
+                ? `mailbox-lookup-option-${searchResults[highlightedIndex].id}`
+                : undefined
+            }
             disabled={disabled || isSearching || isCacheLoading}
             className={`input-field keyboard-focus ${
               error ? 'border-red-500 ring-red-500' : ''
@@ -351,10 +359,14 @@ export default function MailboxLookup({
             spellCheck={false}
             data-testid="mailbox-lookup-input"
           />
-          
+
           {(isSearching || isCacheLoading) && (
             <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-              <div className="animate-spin h-5 w-5 border-2 border-primary-500 border-t-transparent rounded-full"></div>
+              <div
+                className="animate-spin h-5 w-5 border-2 border-primary-500 border-t-transparent rounded-full"
+                role="status"
+                aria-label="Searching"
+              ></div>
             </div>
           )}
         </div>
@@ -366,14 +378,23 @@ export default function MailboxLookup({
         )}
 
         {showDropdown && searchResults.length > 0 && (
-          <div ref={dropdownRef} className="tenant-dropdown" data-testid="mailbox-lookup-dropdown">
+          <div
+            ref={dropdownRef}
+            className="tenant-dropdown"
+            role="listbox"
+            id="mailbox-lookup-listbox"
+            data-testid="mailbox-lookup-dropdown"
+          >
             {searchResults.map((mailbox, index) => (
               <div
                 key={mailbox.id}
+                id={`mailbox-lookup-option-${mailbox.id}`}
                 onClick={() => handleMailboxSelect(mailbox)}
                 className={`tenant-option ${
                   index === highlightedIndex ? 'highlighted' : ''
                 }`}
+                role="option"
+                aria-selected={index === highlightedIndex}
                 data-testid={`mailbox-lookup-option-${mailbox.id}`}
               >
                 <div className="flex justify-between items-center">
@@ -402,7 +423,7 @@ export default function MailboxLookup({
 
         {showDropdown && inputValue.length > 0 && searchResults.length === 0 && (
           <div ref={dropdownRef} className="tenant-dropdown">
-            <div className="px-4 py-3 text-gray-500">
+            <div className="px-4 py-3 text-gray-500" role="status">
               No mailboxes found for "{inputValue}"
             </div>
           </div>
@@ -424,13 +445,13 @@ export default function MailboxLookup({
             justifyContent: 'space-between',
             marginBottom: '1rem'
           }}>
-            <label style={{
+            <span id="mailbox-lookup-tenant-heading" style={{
               fontSize: '1.125rem',
               fontWeight: '700',
               color: '#0c4a6e'
             }}>
               Select Tenant for Mailbox {selectedMailbox.mailbox_number}
-            </label>
+            </span>
             <div style={{
               fontSize: '0.75rem',
               color: '#0369a1',
@@ -440,7 +461,11 @@ export default function MailboxLookup({
             </div>
           </div>
           
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+          <div
+            role="radiogroup"
+            aria-labelledby="mailbox-lookup-tenant-heading"
+            style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}
+          >
             {availableTenants.map((tenant) => {
               const isDefault = selectedMailbox.default_tenant_id === tenant.id;
               const isPending = pendingDefaultChange === tenant.id;
@@ -530,6 +555,7 @@ export default function MailboxLookup({
                     <button
                       onClick={() => handleSetDefaultTenant(tenant.id)}
                       disabled={isUpdatingDefault}
+                      aria-label={`Set ${tenant.name} as default tenant for mailbox ${selectedMailbox.mailbox_number}`}
                       style={{
                         marginLeft: '1rem',
                         padding: '8px 16px',
@@ -545,7 +571,7 @@ export default function MailboxLookup({
                       }}
                     >
                       {isPending ? (
-                        <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span role="status" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                           <div style={{
                             width: '12px',
                             height: '12px',

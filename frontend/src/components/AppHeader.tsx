@@ -1,4 +1,8 @@
-export function AppHeader() {
+interface AppHeaderProps {
+  isOnline: boolean;
+}
+
+export function AppHeader({ isOnline }: AppHeaderProps) {
   return (
     <header 
       data-testid="app-header"
@@ -77,25 +81,27 @@ export function AppHeader() {
                 minute: '2-digit'
               })}
             </div>
-            <div 
+            <div
               data-testid="app-online-indicator"
+              aria-hidden="true"
               style={{
                 width: '8px',
                 height: '8px',
-                backgroundColor: '#10b981',
+                backgroundColor: isOnline ? '#10b981' : '#ef4444',
                 borderRadius: '50%',
-                boxShadow: '0 0 8px rgba(16, 185, 129, 0.5)'
+                boxShadow: isOnline ? '0 0 8px rgba(16, 185, 129, 0.5)' : '0 0 8px rgba(239, 68, 68, 0.5)'
               }}
             />
-            <span 
-              data-testid="app-online-text" 
-              style={{ 
-                color: 'white', 
-                fontSize: '0.875rem', 
-                fontWeight: '600' 
+            <span
+              data-testid="app-online-text"
+              role="status"
+              style={{
+                color: 'white',
+                fontSize: '0.875rem',
+                fontWeight: '600'
               }}
             >
-              Online
+              {isOnline ? 'Online' : 'Offline'}
             </span>
           </div>
         </div>

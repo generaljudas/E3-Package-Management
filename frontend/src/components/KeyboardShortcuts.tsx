@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 type Shortcut = {
   keys: string | string[];
@@ -21,6 +21,23 @@ function Keycap({ children }: { children: React.ReactNode }) {
 
 export default function KeyboardShortcuts({ enabled = true, label = 'Keyboard shortcuts' }: KeyboardShortcutsProps) {
   const [open, setOpen] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const closeRef = useRef<HTMLButtonElement>(null);
+  const wasOpenRef = useRef(false);
+
+  // Move focus into the panel (its Close button) when it opens, and back
+  // to the trigger button when it closes.
+  useEffect(() => {
+    if (open) {
+      wasOpenRef.current = true;
+      const timer = setTimeout(() => closeRef.current?.focus(), 50);
+      return () => clearTimeout(timer);
+    } else if (wasOpenRef.current) {
+      wasOpenRef.current = false;
+      const timer = setTimeout(() => triggerRef.current?.focus(), 50);
+      return () => clearTimeout(timer);
+    }
+  }, [open]);
 
   // Keyboard listener for toggling help with '?' or F1, close with Esc
   useEffect(() => {
@@ -91,6 +108,7 @@ export default function KeyboardShortcuts({ enabled = true, label = 'Keyboard sh
       {enabled && (
         <div className="relative flex justify-end">
           <button
+            ref={triggerRef}
             type="button"
             aria-label="Open keyboard shortcuts"
             aria-expanded={open}
@@ -110,6 +128,7 @@ export default function KeyboardShortcuts({ enabled = true, label = 'Keyboard sh
               <div className="flex items-center justify-between px-5 py-3 border-b border-gray-200 bg-gray-50 rounded-t-xl">
                 <h3 className="text-base md:text-lg font-semibold text-gray-900">Keyboard Shortcuts</h3>
                 <button
+                  ref={closeRef}
                   className="text-gray-500 hover:text-gray-700 rounded-md p-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   onClick={() => setOpen(false)}
                   aria-label="Close"

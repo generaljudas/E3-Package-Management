@@ -18,8 +18,9 @@ export function EmptyState({ icon, title, description }: EmptyStateProps) {
         textAlign: 'center'
       }}
     >
-      <div 
+      <div
         data-testid="app-empty-state-icon"
+        aria-hidden="true"
         style={{
           width: '120px',
           height: '120px',

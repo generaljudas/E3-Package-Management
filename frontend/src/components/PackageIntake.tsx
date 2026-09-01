@@ -321,9 +321,9 @@ export const PackageIntake: React.FC<PackageIntakeProps> = ({
                 gap: '0.5rem',
                 marginBottom: '0.75rem'
               }}>
-                <span style={{ fontSize: '1.25rem' }}>📋</span>
-                <h5 style={{ 
-                  fontWeight: '600', 
+                <span style={{ fontSize: '1.25rem' }} aria-hidden="true">📋</span>
+                <h5 role="status" style={{
+                  fontWeight: '600',
                   color: 'var(--color-gray-900)',
                   fontSize: '1rem',
                   margin: 0
@@ -394,8 +394,9 @@ export const PackageIntake: React.FC<PackageIntakeProps> = ({
                       onMouseLeave={(e) => {
                         e.currentTarget.style.background = 'transparent';
                       }}
+                      aria-label={`Remove ${trackingNumber} from batch`}
                     >
-                      🗑 Remove
+                      <span aria-hidden="true">🗑</span> Remove
                     </button>
                   </li>
                 ))}

@@ -29,8 +29,8 @@ export const MailboxList: React.FC<MailboxListProps> = ({
 
   if (loading && mailboxes.length === 0) {
     return (
-      <div className="text-center py-12" data-testid="mailbox-management-loading">
-        <div className="text-4xl mb-4">⏳</div>
+      <div className="text-center py-12" role="status" data-testid="mailbox-management-loading">
+        <div className="text-4xl mb-4" aria-hidden="true">⏳</div>
         <p className="text-gray-600">Loading mailboxes...</p>
       </div>
     );
@@ -148,6 +148,7 @@ export const MailboxList: React.FC<MailboxListProps> = ({
                 e.currentTarget.style.background = 'transparent';
               }}
               data-testid="clear-search-button"
+              aria-label="Clear search"
             >
               ✕
             </button>
@@ -160,6 +161,7 @@ export const MailboxList: React.FC<MailboxListProps> = ({
             color: '#6b7280',
             fontWeight: '500'
           }}
+          role="status"
           data-testid="search-results-count">
             Showing {filteredMailboxes.length} of {mailboxes.length} mailbox{mailboxes.length !== 1 ? 'es' : ''}
           </div>

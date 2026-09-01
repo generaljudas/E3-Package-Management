@@ -5,6 +5,7 @@ import PackagePickup from './components/PackagePickup';
 import Tools from './components/Tools';
 import { OfflineStatusBar, OfflineDebugPanel } from './components/OfflineStatusBar';
 import TestIdOverlay from './components/TestIdOverlay';
+import KeyboardShortcuts from './components/KeyboardShortcuts';
 import { AppHeader } from './components/AppHeader';
 import { NavigationTabs } from './components/NavigationTabs';
 import type { ViewType } from './components/NavigationTabs';
@@ -12,6 +13,7 @@ import { MailboxSelectionCard } from './components/MailboxSelectionCard';
 import { EmptyState } from './components/EmptyState';
 import { ToastContainer } from './components/Toast';
 import { useGlobalKeyboardShortcuts } from './hooks/useFocus';
+import { useOfflineStatus } from './hooks/useOffline';
 import { useToast } from './hooks/useToast';
 import { NAVIGATION_TABS, EMPTY_STATE } from './constants/navigation';
 import type { Mailbox, Tenant } from './types';
@@ -26,6 +28,7 @@ function Dashboard() {
   const packageIntakeRef = useRef<HTMLInputElement>(null);
 
   const { toasts, showToast, removeToast } = useToast();
+  const { isOnline } = useOfflineStatus();
 
   // Global keyboard shortcuts
   useGlobalKeyboardShortcuts({
@@ -64,7 +67,7 @@ function Dashboard() {
   return (
     <div className="min-h-screen bg-gray-50">
       <OfflineStatusBar />
-      <AppHeader />
+      <AppHeader isOnline={isOnline} />
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8" style={{ display: 'flex', flexDirection: 'column', gap: '2rem', paddingTop: '2rem' }} data-testid="app-main-container">
         <NavigationTabs 
@@ -140,6 +143,8 @@ function Dashboard() {
             )}
           </div>
         )}
+
+        <KeyboardShortcuts />
       </main>
 
       <ToastContainer toasts={toasts} onRemoveToast={removeToast} />

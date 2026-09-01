@@ -44,6 +44,22 @@ const SignatureRetrieval: React.FC<SignatureRetrievalProps> = ({ onError, onSucc
   const [isSearching, setIsSearching] = useState(false);
   const [isLoadingSignature, setIsLoadingSignature] = useState(false);
   const trackingInputRef = useRef<HTMLInputElement>(null);
+  const signatureHeadingRef = useRef<HTMLHeadingElement>(null);
+  const lastResultTriggerRef = useRef<HTMLElement | null>(null);
+
+  // Move focus to the signature panel when it opens, and back to the
+  // originating result button when it closes.
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (selectedPackage) {
+        signatureHeadingRef.current?.focus();
+      } else if (lastResultTriggerRef.current) {
+        lastResultTriggerRef.current.focus();
+        lastResultTriggerRef.current = null;
+      }
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [selectedPackage]);
 
 
 
@@ -460,7 +476,10 @@ const SignatureRetrieval: React.FC<SignatureRetrievalProps> = ({ onError, onSucc
             {packages.map((pkg) => (
               <button
                 key={pkg.id}
-                onClick={() => loadSignature(pkg)}
+                onClick={(e) => {
+                  lastResultTriggerRef.current = e.currentTarget;
+                  loadSignature(pkg);
+                }}
                 data-testid={`package-result-${pkg.id}`}
                 style={{
                   width: '100%',
@@ -519,7 +538,7 @@ const SignatureRetrieval: React.FC<SignatureRetrievalProps> = ({ onError, onSucc
           padding: '1.5rem',
         }} data-testid="signature-display">
           <div className="flex justify-between items-start mb-4">
-            <h3 className="text-lg font-semibold text-gray-900">
+            <h3 ref={signatureHeadingRef} tabIndex={-1} className="text-lg font-semibold text-gray-900">
               Package Signature
             </h3>
             <button
@@ -582,7 +601,7 @@ const SignatureRetrieval: React.FC<SignatureRetrievalProps> = ({ onError, onSucc
 
           {/* Signature Image */}
           {isLoadingSignature ? (
-            <div className="text-center py-12">
+            <div className="text-center py-12" role="status">
               <div className="text-gray-500">Loading signature...</div>
             </div>
           ) : signatureData ? (

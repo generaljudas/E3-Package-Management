@@ -145,13 +145,13 @@ export const MailboxForm: React.FC<MailboxFormProps> = ({
               justifyContent: 'space-between',
               marginBottom: '1rem'
             }}>
-              <label style={{ 
+              <span style={{
                 fontSize: '1rem',
                 fontWeight: '600',
                 color: '#374151',
               }}>
                 Tenants (Optional)
-              </label>
+              </span>
               <button
                 type="button"
                 onClick={handleAddTenant}
@@ -222,6 +222,7 @@ export const MailboxForm: React.FC<MailboxFormProps> = ({
                         cursor: 'pointer',
                       }}
                       data-testid={`remove-tenant-${index}`}
+                      aria-label={`Remove tenant ${index + 1}`}
                     >
                       Remove
                     </button>

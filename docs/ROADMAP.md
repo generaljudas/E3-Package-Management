@@ -77,10 +77,11 @@ programmatically and views verified in the running app):
 
 **Interactive-element / keyboard audit**: re-run from scratch on 2026-08-31 — ~60
 findings across 20 components, tracked with their own checklist in
-[A11Y_AUDIT.md](A11Y_AUDIT.md). The High-severity mechanical batch (positive
-tabIndex removal, input labeling, toast/offline live regions, aria-pressed/
-aria-current on toggles and tabs, error association, table semantics, main
-landmark) is fixed; judgment items remain — see that file.
+[A11Y_AUDIT.md](A11Y_AUDIT.md). **All of it is now fixed and verified except
+one item**: H10, a keyboard alternative for signature capture, is blocked on a
+product decision (typed-name fallback vs. documenting mouse/touch/stylus as
+required) — see that file for the options. M11 (a lower-traffic combobox
+pattern in MailboxSearch) was also left for later.
 
 **Dev-only overlays** (Offline Status debug panel, Test IDs pill) already gated out of
 production in Phase 2 — screenshots should no longer show them once retaken.
@@ -119,9 +120,8 @@ Decided deliberately, not forgotten:
 
 ## Suggested next action
 
-1. Finish Phase 3: the judgment items in [A11Y_AUDIT.md](A11Y_AUDIT.md) — combobox
-   semantics for MailboxLookup (H8), step-flow focus management (H9), and the keyboard
-   alternative for signature capture (H10, needs a product decision) — plus the
-   remaining mechanical medium items (M2/M3/M5–M7).
-2. Phase 4 cleanup and release once Phase 3 lands: CHANGELOG/CONTRIBUTING, fresh
-   screenshots, tag `v1.0.0-beta.1`, unsigned-installer warning walkthrough.
+1. Decide H10 (docs/A11Y_AUDIT.md) — the keyboard alternative for signature
+   capture is the last thing blocking Phase 3 from being fully closed out.
+2. Phase 4 cleanup and release: CHANGELOG/CONTRIBUTING, fresh screenshots (now
+   safe to take — the accessible UI is in place), tag `v1.0.0-beta.1`,
+   unsigned-installer warning walkthrough.

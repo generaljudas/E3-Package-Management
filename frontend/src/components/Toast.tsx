@@ -28,10 +28,10 @@ const toastStyles: Record<ToastMessage['type'], { background: string; icon: stri
 
 export function Toast({ message, type, onClose }: ToastProps) {
   useEffect(() => {
-    const duration = message.includes('error') ? 5000 : 3000;
+    const duration = type === 'error' ? 5000 : 3000;
     const timer = setTimeout(onClose, duration);
     return () => clearTimeout(timer);
-  }, [onClose, message]);
+  }, [onClose, type]);
 
   const style = toastStyles[type];
 

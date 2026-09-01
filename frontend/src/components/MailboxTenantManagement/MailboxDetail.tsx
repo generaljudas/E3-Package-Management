@@ -265,8 +265,9 @@ export const MailboxDetail: React.FC<MailboxDetailProps> = ({
                             fontWeight: '600',
                           }}
                           data-testid={`edit-tenant-${tenant.id}`}
+                          aria-label={`Edit ${tenant.name}`}
                         >
-                          ✏️ Edit
+                          <span aria-hidden="true">✏️</span> Edit
                         </button>
                         <button
                           onClick={() => onDeleteTenant(tenant)}
@@ -279,8 +280,9 @@ export const MailboxDetail: React.FC<MailboxDetailProps> = ({
                             fontWeight: '600',
                           }}
                           data-testid={`delete-tenant-${tenant.id}`}
+                          aria-label={`Delete ${tenant.name}`}
                         >
-                          🗑️ Delete
+                          <span aria-hidden="true">🗑️</span> Delete
                         </button>
                       </div>
                     </div>

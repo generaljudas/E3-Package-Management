@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import Reports from './Reports';
 import MailboxTenantManagement from './MailboxTenantManagement';
 import SignatureRetrieval from './SignatureRetrieval';
@@ -44,6 +44,26 @@ const Tools: React.FC<ToolsProps> = ({ selectedMailbox, selectedTenant, onError,
   const [activeTool, setActiveTool] = useState<ToolId | null>(null);
   const [isReloadingCache, setIsReloadingCache] = useState(false);
   const mailboxManagementBackHandler = useRef<(() => boolean) | null>(null);
+  const backButtonRef = useRef<HTMLButtonElement>(null);
+  const toolsGridRef = useRef<HTMLDivElement>(null);
+  const prevActiveToolRef = useRef(activeTool);
+
+  // Move focus into the open tool (its Back button) and back to the tool
+  // grid on return, so keyboard/screen-reader users aren't left on a
+  // control that just unmounted.
+  useEffect(() => {
+    if (prevActiveToolRef.current === activeTool) return;
+    const opened = activeTool !== null && prevActiveToolRef.current === null;
+    const closed = activeTool === null && prevActiveToolRef.current !== null;
+    prevActiveToolRef.current = activeTool;
+
+    const timer = setTimeout(() => {
+      if (opened) backButtonRef.current?.focus();
+      else if (closed) toolsGridRef.current?.focus();
+    }, 100);
+
+    return () => clearTimeout(timer);
+  }, [activeTool]);
 
   // Get icon and description for each tool
   const toolInfo: Record<ToolId, { icon: string; description: string }> = {
@@ -94,6 +114,7 @@ const Tools: React.FC<ToolsProps> = ({ selectedMailbox, selectedTenant, onError,
     <div className="space-y-8" data-testid="tools-root">
       {activeTool && (
         <button
+          ref={backButtonRef}
           onClick={handleBack}
           data-testid="tools-back-button"
           style={{
@@ -120,7 +141,7 @@ const Tools: React.FC<ToolsProps> = ({ selectedMailbox, selectedTenant, onError,
             e.currentTarget.style.boxShadow = '0 2px 8px rgba(59, 130, 246, 0.25)';
           }}
         >
-          <span style={{ fontSize: '1rem' }}>←</span>
+          <span style={{ fontSize: '1rem' }} aria-hidden="true">←</span>
           <span>Back</span>
         </button>
       )}
@@ -161,7 +182,7 @@ const Tools: React.FC<ToolsProps> = ({ selectedMailbox, selectedTenant, onError,
               e.currentTarget.style.boxShadow = '0 2px 8px rgba(16, 185, 129, 0.25)';
             }}
           >
-            <span style={{ fontSize: '1.125rem' }}>🔄</span>
+            <span style={{ fontSize: '1.125rem' }} aria-hidden="true">🔄</span>
             <span>{isReloadingCache ? 'Reloading...' : 'Reload Mailbox Cache'}</span>
           </button>
         </div>
@@ -169,7 +190,12 @@ const Tools: React.FC<ToolsProps> = ({ selectedMailbox, selectedTenant, onError,
 
       {/* Show all tools in a single grid when no tool is active */}
       {!activeTool && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6" data-testid="tools-categories">
+        <div
+          ref={toolsGridRef}
+          tabIndex={-1}
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
+          data-testid="tools-categories"
+        >
           {toolCategories.flatMap((category) => 
             category.tools.map((tool) => {
               const info = toolInfo[tool.id];
@@ -183,7 +209,7 @@ const Tools: React.FC<ToolsProps> = ({ selectedMailbox, selectedTenant, onError,
                     data-testid={`tools-tab-${tool.id}`}
                   >
                     <div className="flex flex-col items-center text-center space-y-3">
-                      <div className="text-5xl" style={{ filter: 'grayscale(100%)' }}>{info.icon}</div>
+                      <div className="text-5xl" style={{ filter: 'grayscale(100%)' }} aria-hidden="true">{info.icon}</div>
                       <h5 className="text-lg font-semibold text-gray-500">{tool.label}</h5>
                       <p className="text-sm text-gray-500 leading-relaxed">{info.description}</p>
                       <span className="absolute top-2 right-2 text-xs bg-gray-200 text-gray-600 px-2 py-1 rounded-full font-medium">
@@ -202,7 +228,7 @@ const Tools: React.FC<ToolsProps> = ({ selectedMailbox, selectedTenant, onError,
                   data-testid={`tools-tab-${tool.id}`}
                 >
                   <div className="flex flex-col items-center text-center space-y-3">
-                    <div className="text-5xl">{info.icon}</div>
+                    <div className="text-5xl" aria-hidden="true">{info.icon}</div>
                     <h5 className="text-lg font-semibold text-gray-900">{tool.label}</h5>
                     <p className="text-sm text-gray-600 leading-relaxed">{info.description}</p>
                   </div>

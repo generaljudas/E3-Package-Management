@@ -53,62 +53,78 @@ nothing.
 - [x] **H7. OfflineStatusBar live region**: keep a persistent `role="status"`
       wrapper mounted (restructure the early return) so offline/sync banners
       are announced. (4.1.3)
-- [ ] **H8. Combobox semantics for MailboxLookup** — `role="combobox"`,
+- [x] **H8. Combobox semantics for MailboxLookup** — `role="combobox"`,
       `aria-expanded`, `aria-autocomplete`, `aria-controls`,
-      `aria-activedescendant`; listbox/option roles on the dropdown. Test with
-      VoiceOver that Enter-on-exact-number still short-circuits. (4.1.2)
-- [ ] **H9. Step-flow focus management** — pickup list→verify→signature steps,
-      Tools open/back, SignatureRetrieval panel swaps never move focus (focus
-      resets to `<body>`; only the verify step has `autoFocus`). Use the
-      existing unused `useFocusFlow` hook; focus each step's heading
-      (`tabIndex={-1}`). (2.4.3)
+      `aria-activedescendant`; listbox/option roles on the dropdown. Verified
+      programmatically (attributes present, `aria-activedescendant` tracks
+      arrow-key highlight) — Enter-on-exact-number path untouched. (4.1.2)
+- [x] **H9. Step-flow focus management** — pickup list→verify→signature→confirm
+      steps, Tools open/back, SignatureRetrieval panel open/close now move focus
+      (heading or container, `tabIndex={-1}`, via a small effect keyed off the
+      step/state transition; SignatureRetrieval also restores focus to the
+      originating result button on close). Verified in the running app that
+      focus lands on the Tools Back button on open and the grid on return.
+      Verify step still relies on its existing `autoFocus` input. (2.4.3)
 - [ ] **H10. Keyboard alternative for signature capture** — canvas is
       mouse/touch-only and Confirm is disabled until a signature exists, so a
       keyboard-only operator cannot complete a pickup at all. Options: typed-name
       fallback rendered/stored as the signature, or a documented alternate path.
-      **Product decision needed — the only complete keyboard blocker in the app.** (2.1.1)
+      **Awaiting a product decision — the only complete keyboard blocker in the
+      app, and the last open High-severity item.** (2.1.1)
 
 ### Medium — mechanical
 
 - [x] M1. `scope="col"` on the pickup table's 7 `th`s + accessible table name.
-- [ ] M2. Disambiguate repeated button names (`aria-label` with the item's name):
+- [x] M2. Disambiguate repeated button names (`aria-label` with the item's name):
       remove-from-batch, Set Default, per-tenant Edit/Delete, Remove tenant,
       clear-✕ buttons in MailboxSearch/MailboxList, pickup mailbox filter chip.
-- [ ] M3. `role="status"` on the remaining silent state blocks: loading spinners
+- [x] M3. `role="status"` on the remaining silent state blocks: loading spinners
       (PackagePickup, MailboxList, MailboxSearch, SignatureRetrieval,
       MailboxLookup), no-results messages, result counts, signature status,
       intake batch count.
 - [x] M4. `<main>` landmark in App.tsx.
-- [ ] M5. `role="img"` + `aria-label` on the signature canvas.
-- [ ] M6. Fieldset/legend for the tenant radio group (MailboxLookup) and
-      per-tenant blocks (MailboxForm).
-- [ ] M7. `aria-hidden="true"` on decorative emoji/icon divs (EmptyState,
-      AppHeader dot, section headers, Toast icon, banner dots).
+- [x] M5. `role="img"` + `aria-label` on the signature canvas (label reflects
+      empty vs. captured); signature status text also made a live region.
+- [x] M6. Tenant grouping given programmatic semantics without changing layout
+      (a literal `<fieldset>/<legend>` would force the "Set Default" hint text
+      below the heading instead of beside it): MailboxLookup's tenant list is
+      `role="radiogroup"` + `aria-labelledby` pointing at the heading;
+      MailboxForm's dangling `"Tenants (Optional)"` `<label>` (no control)
+      changed to a `<span>` — each tenant sub-block already has a real heading
+      and every field already has its own `<label htmlFor>`.
+- [x] M7. `aria-hidden="true"` on decorative emoji/icon divs (EmptyState,
+      AppHeader dot, section headers, Toast icon, banner dots, Tools icons).
 
 ### Medium — needs judgment
 
-- [ ] M8. Mount `KeyboardShortcuts` in App (it's currently dead code) with
-      open/close focus handling; wire `useFocusTrap` after fixing its defects
-      (no focus restoration, no Escape, selector misses `a[href]`/`:disabled`).
-- [ ] M9. Pickup row checkbox has a no-op `onChange` (works only via event
-      bubbling to the `<tr>` onClick) — make the checkbox the real control with
-      `stopPropagation`, keep row-click as mouse convenience; retest both paths.
-- [ ] M10. Hover-only package notes (`title` on `<tr>`) need a
-      keyboard-reachable rendering.
+- [x] M8. Mounted `KeyboardShortcuts` in App (was dead code) at the bottom of
+      `<main>`; added open→focus-Close-button / close→focus-trigger-button
+      handling. Left `useFocusTrap` unused — this is a non-modal disclosure
+      popover (not a dialog) with one focusable control, so a full trap would
+      be overreach; Escape-to-close already existed. Verified in the running
+      app: `?` opens it and focus lands on Close.
+- [x] M9. Pickup row checkbox's no-op `onChange` replaced with a real handler
+      (`togglePackageSelection`) + `stopPropagation` so it no longer depends on
+      bubbling to the `<tr>`; both the row click and the checkbox itself now
+      toggle exactly once.
+- [x] M10. Hover-only package notes folded into the row checkbox's
+      `aria-label` (`"Select X, notes: ..."`) instead of a layout change.
 - [ ] M11. MailboxSearch arrow-key highlight is a second, SR-invisible cursor
       over button cards — adopt a real combobox pattern or drop the custom
-      highlight.
-- [ ] M12. Toast duration decided by `message.includes('error')` instead of
-      `type === 'error'` (bug), and consider pause-on-hover.
-- [ ] M13. AppHeader "Online" indicator is hard-coded — it says Online even when
-      offline. Drive it from `useOfflineStatus()` or remove it; `aria-hidden`
-      the dot.
+      highlight. **Not done** — same shape as H8 but lower traffic; revisit if
+      time allows.
+- [x] M12. Toast duration now keys off `type === 'error'` instead of
+      `message.includes('error')`.
+- [x] M13. AppHeader's indicator now reflects real `useOfflineStatus()` state
+      (was hard-coded "Online"); dot marked `aria-hidden`, text is a
+      `role="status"` live region.
 
 ### Low
 
-- [ ] Heading-level normalization (h4/h5 jumps; h5-inside-button in
-      Tools/MailboxList); MailboxLookup Escape handler blurs to `<body>` (keep
-      focus in input); Alt-shortcut matching should use `e.code` (Option+P
+- [x] MailboxLookup Escape handler no longer blurs to `<body>` (focus stays in
+      the input).
+- [ ] Not done: heading-level normalization (h4/h5 jumps; h5-inside-button in
+      Tools/MailboxList); Alt-shortcut matching should use `e.code` (Option+P
       types "π" on macOS so Alt+P may never fire on Mac); expand status
       abbreviations (Pick/Ret/RTS); delete or fix dead `TenantLookup.tsx`;
       `aria-describedby` hint associations.
@@ -120,3 +136,11 @@ nothing.
 criterion, exact fix) for every unchecked item lives in the audit output and
 can be regenerated by re-auditing; the checklist above is the source of truth
 for what remains.*
+
+**Status: only H10 and M11 remain open.** Everything else in this checklist
+— all mechanical High/Medium items, all three judgment High items (H7–H9),
+and all judgment Medium items except M11 — is fixed and verified (build,
+programmatic checks, and a live-app pass driving the combobox, step
+transitions, Tools open/back, and the keyboard-shortcuts panel; zero console
+errors). H10 needs a product decision on the signature-capture keyboard
+fallback before it can be implemented.

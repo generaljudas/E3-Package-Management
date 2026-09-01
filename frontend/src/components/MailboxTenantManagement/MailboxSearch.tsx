@@ -187,6 +187,7 @@ export const MailboxSearch: React.FC<MailboxSearchProps> = ({
                 e.currentTarget.style.background = 'transparent';
               }}
               data-testid="clear-search-button"
+              aria-label="Clear search"
             >
               ✕
             </button>
@@ -196,18 +197,21 @@ export const MailboxSearch: React.FC<MailboxSearchProps> = ({
 
       {/* Search Results */}
       {isSearching ? (
-        <div className="text-center py-12">
-          <div className="text-4xl mb-4">⏳</div>
+        <div className="text-center py-12" role="status">
+          <div className="text-4xl mb-4" aria-hidden="true">⏳</div>
           <p className="text-gray-600">Searching...</p>
         </div>
       ) : searchQuery && searchResults.length > 0 ? (
         <div>
-          <div style={{ 
-            marginBottom: '1rem', 
-            fontSize: '0.875rem', 
-            color: '#6b7280',
-            fontWeight: '500'
-          }}>
+          <div
+            role="status"
+            style={{
+              marginBottom: '1rem',
+              fontSize: '0.875rem',
+              color: '#6b7280',
+              fontWeight: '500'
+            }}
+          >
             Found {searchResults.length} mailbox{searchResults.length !== 1 ? 'es' : ''}
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">

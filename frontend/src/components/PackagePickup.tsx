@@ -79,7 +79,30 @@ export const PackagePickup: React.FC<PackagePickupProps> = ({
   });
 
   const searchRef = useRef<HTMLInputElement>(null);
+  const signatureHeadingRef = useRef<HTMLHeadingElement>(null);
+  const confirmStepRef = useRef<HTMLDivElement>(null);
+  const prevStepRef = useRef(workflow.step);
   const { isOnline, queuePackagePickup } = useOfflineOperations();
+
+  // Move focus to the new step on transition so keyboard/screen-reader users
+  // aren't left on a control that just unmounted. The 'verify' step is
+  // skipped here because its pickup-person input already has autoFocus.
+  useEffect(() => {
+    if (prevStepRef.current === workflow.step) return;
+    prevStepRef.current = workflow.step;
+
+    const timer = setTimeout(() => {
+      if (workflow.step === 'list') {
+        searchRef.current?.focus();
+      } else if (workflow.step === 'signature') {
+        signatureHeadingRef.current?.focus();
+      } else if (workflow.step === 'confirm') {
+        confirmStepRef.current?.focus();
+      }
+    }, 100);
+
+    return () => clearTimeout(timer);
+  }, [workflow.step]);
 
   // Load packages for the selected mailbox (or all packages if no mailbox selected)
   useEffect(() => {
@@ -287,6 +310,7 @@ export const PackagePickup: React.FC<PackagePickupProps> = ({
           justifyContent: 'center',
           padding: '4rem 0',
         }}
+        role="status"
         data-testid="pickup-loading"
       >
         <div style={{ textAlign: 'center' }}>
@@ -374,6 +398,7 @@ export const PackagePickup: React.FC<PackagePickupProps> = ({
                     onClick={onClearMailbox}
                     data-testid="pickup-clear-mailbox-filter"
                     title="Clear mailbox filter to view all packages"
+                    aria-label={`Clear mailbox ${selectedMailbox.mailbox_number} filter`}
                     style={{
                       padding: '0.5rem 1rem',
                       borderRadius: 'var(--radius-md)',
@@ -391,8 +416,8 @@ export const PackagePickup: React.FC<PackagePickupProps> = ({
                     }}
                   >
                     <span>📬 Mailbox {selectedMailbox.mailbox_number}</span>
-                    <span style={{ 
-                      fontSize: '1rem', 
+                    <span aria-hidden="true" style={{
+                      fontSize: '1rem',
                       fontWeight: '700',
                       opacity: 0.9,
                     }}>✕</span>
@@ -467,10 +492,11 @@ export const PackagePickup: React.FC<PackagePickupProps> = ({
                     textAlign: 'center', 
                     padding: '3rem 0',
                     color: 'var(--color-gray-500)'
-                  }} 
+                  }}
+                  role="status"
                   data-testid="pickup-no-packages"
                 >
-                  <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>📭</div>
+                  <div style={{ fontSize: '4rem', marginBottom: '1rem' }} aria-hidden="true">📭</div>
                   <p style={{ fontSize: '1.125rem', fontWeight: '500', marginBottom: '0.5rem' }}>No packages found</p>
                   {statusFilter === 'available' && (
                     <p style={{ fontSize: '0.875rem', color: 'var(--color-gray-400)' }}>
@@ -581,8 +607,13 @@ export const PackagePickup: React.FC<PackagePickupProps> = ({
                                     <input
                                       type="checkbox"
                                       checked={!!isSelected}
-                                      onChange={() => {}}
-                                      aria-label={`Select ${pkg.tracking_number}`}
+                                      onChange={() => togglePackageSelection(pkg)}
+                                      onClick={(e) => e.stopPropagation()}
+                                      aria-label={
+                                        pkg.notes
+                                          ? `Select ${pkg.tracking_number}, notes: ${pkg.notes}`
+                                          : `Select ${pkg.tracking_number}`
+                                      }
                                       data-testid={`pickup-select-${pkg.id}`}
                                       style={{
                                         width: '1.125rem',
@@ -655,6 +686,7 @@ export const PackagePickup: React.FC<PackagePickupProps> = ({
                   borderRadius: 'var(--radius-md)',
                   boxShadow: 'var(--shadow-md)',
                 }}
+                role="status"
                 data-testid="pickup-selection-summary"
               >
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem' }}>
@@ -879,13 +911,17 @@ export const PackagePickup: React.FC<PackagePickupProps> = ({
               boxShadow: 'var(--shadow-sm)',
             }}
           >
-            <span style={{ fontSize: '1.5rem' }}>✍️</span>
-            <h4 style={{ 
-              fontSize: '1.125rem', 
-              fontWeight: '600', 
-              color: 'white',
-              margin: 0
-            }}>
+            <span style={{ fontSize: '1.5rem' }} aria-hidden="true">✍️</span>
+            <h4
+              ref={signatureHeadingRef}
+              tabIndex={-1}
+              style={{
+                fontSize: '1.125rem',
+                fontWeight: '600',
+                color: 'white',
+                margin: 0
+              }}
+            >
               Digital Signature Required
             </h4>
           </div>
@@ -952,7 +988,7 @@ export const PackagePickup: React.FC<PackagePickupProps> = ({
       )}
 
       {workflow.step === 'confirm' && workflow.signature && (
-        <div data-testid="pickup-verification">
+        <div ref={confirmStepRef} tabIndex={-1} data-testid="pickup-verification">
           <SignatureVerification
             signature={workflow.signature}
             recipientName={workflow.pickupPerson}
