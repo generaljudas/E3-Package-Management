@@ -131,23 +131,70 @@ const initSchema = async () => {
       CREATE TABLE IF NOT EXISTS pickup_events (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         package_id INTEGER NOT NULL,
+        tenant_id INTEGER,
+        mailbox_id INTEGER,
+        pickup_person_name VARCHAR(255),
         picked_up_by VARCHAR(255),
         signature_id INTEGER,
+        signature_required BOOLEAN DEFAULT 0,
+        signature_captured BOOLEAN DEFAULT 0,
+        staff_initials VARCHAR(10),
         notes TEXT,
+        pickup_timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
         picked_up_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (package_id) REFERENCES packages(id) ON DELETE CASCADE,
+        FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE SET NULL,
+        FOREIGN KEY (mailbox_id) REFERENCES mailboxes(id) ON DELETE SET NULL,
         FOREIGN KEY (signature_id) REFERENCES signatures(id) ON DELETE SET NULL
       );
     `);
 
     // Create signatures table
+    // signature_method/typed_name: a typed name is a legally equivalent
+    // signature — the raw text is the signature, the image is a view of it,
+    // and the record must state how it was captured (docs/SIGNATURE_POLICY.md).
     await db.exec(`
       CREATE TABLE IF NOT EXISTS signatures (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
+        package_id INTEGER,
         signature_data TEXT NOT NULL,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        signature_method VARCHAR(10) NOT NULL DEFAULT 'drawn',
+        typed_name TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (package_id) REFERENCES packages(id) ON DELETE CASCADE
       );
     `);
+
+    // Migrate pre-existing databases whose signatures table predates these
+    // columns (the table is created with IF NOT EXISTS, so CREATE alone
+    // never adds columns to an existing installation).
+    const addMissingColumns = async (table, columns) => {
+      const existing = await db.all(`PRAGMA table_info(${table})`);
+      const names = new Set(existing.map((c) => c.name));
+      for (const [name, definition] of Object.entries(columns)) {
+        if (!names.has(name)) {
+          await db.exec(`ALTER TABLE ${table} ADD COLUMN ${name} ${definition}`);
+        }
+      }
+    };
+
+    await addMissingColumns('signatures', {
+      package_id: 'INTEGER REFERENCES packages(id) ON DELETE CASCADE',
+      signature_method: "VARCHAR(10) NOT NULL DEFAULT 'drawn'",
+      typed_name: 'TEXT',
+    });
+
+    await addMissingColumns('pickup_events', {
+      tenant_id: 'INTEGER REFERENCES tenants(id) ON DELETE SET NULL',
+      mailbox_id: 'INTEGER REFERENCES mailboxes(id) ON DELETE SET NULL',
+      pickup_person_name: 'VARCHAR(255)',
+      signature_required: 'BOOLEAN DEFAULT 0',
+      signature_captured: 'BOOLEAN DEFAULT 0',
+      staff_initials: 'VARCHAR(10)',
+      pickup_timestamp: 'DATETIME',
+      created_at: 'DATETIME',
+    });
 
     // Create indexes for performance
     await db.exec(`
@@ -157,6 +204,7 @@ const initSchema = async () => {
       CREATE INDEX IF NOT EXISTS idx_packages_tracking ON packages(tracking_number);
       CREATE INDEX IF NOT EXISTS idx_tenants_mailbox ON tenants(mailbox_id);
       CREATE INDEX IF NOT EXISTS idx_pickup_events_package ON pickup_events(package_id);
+      CREATE UNIQUE INDEX IF NOT EXISTS idx_signatures_package ON signatures(package_id);
     `);
 
     console.log('✅ Database schema initialized');
@@ -258,9 +306,10 @@ export const query = async (text, params = []) => {
     }
 
     let result;
-    if (sqliteQuery.trim().toUpperCase().startsWith('SELECT')) {
+    const queryStart = sqliteQuery.trim().toUpperCase();
+    if (queryStart.startsWith('SELECT') || queryStart.startsWith('WITH')) {
       result = await db.all(sqliteQuery, params);
-    } else if (sqliteQuery.trim().toUpperCase().startsWith('INSERT')) {
+    } else if (queryStart.startsWith('INSERT')) {
       const info = await db.run(sqliteQuery, params);
       
       // If RETURNING was requested, fetch the inserted row

@@ -136,6 +136,8 @@ export interface PickupRequest {
   tenant_id?: number; // Optional - for tenant context
   pickup_person_name: string;
   signature_data?: string;
+  signature_method?: 'drawn' | 'typed';
+  typed_name?: string; // Raw typed name when signature_method is 'typed'
   notes?: string;
   staff_initials?: string;
 }

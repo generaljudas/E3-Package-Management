@@ -28,10 +28,12 @@ router.get('/:id', [
     const { id } = req.params;
     
     const result = await dbQuery(`
-      SELECT 
+      SELECT
         s.id,
         s.package_id,
         s.signature_data,
+        s.signature_method,
+        s.typed_name,
         s.created_at,
         p.tracking_number,
         p.status,
@@ -42,7 +44,7 @@ router.get('/:id', [
         pe.pickup_person_name
       FROM signatures s
       JOIN packages p ON s.package_id = p.id
-      LEFT JOIN pickup_events pe ON s.pickup_event_id = pe.id
+      LEFT JOIN pickup_events pe ON pe.package_id = s.package_id
       LEFT JOIN tenants t ON p.tenant_id = t.id
       LEFT JOIN mailboxes m ON p.mailbox_id = m.id
       WHERE s.id = ?
@@ -76,15 +78,15 @@ router.get('/package/:packageId', [
     const { packageId } = req.params;
     
     const result = await dbQuery(`
-      SELECT 
-        s.id, s.package_id, s.signature_data, s.created_at,
+      SELECT
+        s.id, s.package_id, s.signature_data, s.signature_method, s.typed_name, s.created_at,
         p.tracking_number, p.status, p.picked_up_at as pickup_date,
         p.pickup_by,
         t.name as tenant_name, m.mailbox_number,
         pe.pickup_person_name
       FROM signatures s
       JOIN packages p ON s.package_id = p.id
-      LEFT JOIN pickup_events pe ON s.pickup_event_id = pe.id
+      LEFT JOIN pickup_events pe ON pe.package_id = s.package_id
       LEFT JOIN tenants t ON p.tenant_id = t.id
       LEFT JOIN mailboxes m ON p.mailbox_id = m.id
       WHERE s.package_id = ?
@@ -118,7 +120,7 @@ router.get('/image/:id', [
     const { id } = req.params;
     
     const result = await dbQuery(`
-      SELECT signature_data, signature_url
+      SELECT signature_data
       FROM signatures
       WHERE id = ?
     `, [id]);
@@ -130,12 +132,7 @@ router.get('/image/:id', [
       });
     }
 
-    const { signature_data, signature_url } = result.rows[0];
-
-    // If we have a URL (cloud storage), redirect to it
-    if (signature_url) {
-      return res.redirect(signature_url);
-    }
+    const { signature_data } = result.rows[0];
 
     // If we have base64 data, return it as an image
     if (signature_data) {
@@ -182,19 +179,19 @@ router.delete('/:id', [
 
     // Get signature info before deletion for response
     const signatureResult = await dbQuery(`
-      SELECT 
+      SELECT
         s.id,
-        s.pickup_event_id,
+        s.package_id,
         pe.pickup_person_name,
         p.tracking_number
       FROM signatures s
-      JOIN pickup_events pe ON s.pickup_event_id = pe.id
-      JOIN packages p ON pe.package_id = p.id
+      JOIN packages p ON s.package_id = p.id
+      LEFT JOIN pickup_events pe ON pe.package_id = s.package_id
       WHERE s.id = ?
     `, [id]);
 
     if (signatureResult.rows.length === 0) {
-      return res.status(404).json({ 
+      return res.status(404).json({
         error: 'Signature not found',
         id: parseInt(id),
       });
@@ -205,16 +202,16 @@ router.delete('/:id', [
 
     // Update the pickup event to reflect signature is no longer captured
     await dbQuery(`
-      UPDATE pickup_events 
-      SET signature_captured = 0 
-      WHERE id = ?
-    `, [signatureResult.rows[0].pickup_event_id]);
+      UPDATE pickup_events
+      SET signature_captured = 0
+      WHERE package_id = ?
+    `, [signatureResult.rows[0].package_id]);
 
     res.json({
       message: 'Signature deleted successfully',
       deleted_signature: {
         id: parseInt(id),
-        pickup_event_id: signatureResult.rows[0].pickup_event_id,
+        package_id: signatureResult.rows[0].package_id,
         pickup_person_name: signatureResult.rows[0].pickup_person_name,
         tracking_number: signatureResult.rows[0].tracking_number,
       },

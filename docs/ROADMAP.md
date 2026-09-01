@@ -37,8 +37,12 @@ only, not restyling.
 | 0 | PII purge from git history | ✅ Done | `6ac507f` |
 | 1 | Truth & hygiene pass (README, LICENSE, versions, dead files) | ✅ Done | `dc7fb79` |
 | 2 | Make the packaged desktop app actually work | ✅ Done | `c1ea055` |
-| 3 | Accessibility to WCAG 2.2 AA | 🟡 In progress | contrast batch + mechanical a11y batch, `fix(a11y)` commits |
+| 3 | Accessibility to WCAG 2.2 AA | ✅ Done¹ | `fix(a11y)` commits; signature decision in `SIGNATURE_POLICY.md` |
 | 4 | Docs restructure, screenshots, GitHub release | 🟡 Partial | `docs/DOCUMENTATION.md` committed (`f8eaf90`) |
+
+¹ One deferred nit: M11 in [A11Y_AUDIT.md](A11Y_AUDIT.md) (MailboxSearch
+arrow-key highlight pattern) plus that file's Low list — enhancements to an
+already keyboard-operable flow, not blockers.
 
 Phases 0–2 fixed the app itself: the packaged installer used to fail to build, and even
 when it did build it hung silently forever (system-`node` spawn that doesn't exist on
@@ -120,8 +124,6 @@ Decided deliberately, not forgotten:
 
 ## Suggested next action
 
-1. Decide H10 (docs/A11Y_AUDIT.md) — the keyboard alternative for signature
-   capture is the last thing blocking Phase 3 from being fully closed out.
-2. Phase 4 cleanup and release: CHANGELOG/CONTRIBUTING, fresh screenshots (now
-   safe to take — the accessible UI is in place), tag `v1.0.0-beta.1`,
-   unsigned-installer warning walkthrough.
+Phase 4 cleanup and release: CHANGELOG/CONTRIBUTING, fresh screenshots (now
+safe to take — the accessible UI is in place), tag `v1.0.0-beta.1`,
+unsigned-installer warning walkthrough.

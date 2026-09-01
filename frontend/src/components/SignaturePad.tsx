@@ -9,6 +9,12 @@ export interface SignatureData {
   dataURL: string;
   isEmpty: boolean;
   timestamp: Date;
+  /** How the signature was captured. The stored record must reflect this
+   *  honestly — see docs/SIGNATURE_POLICY.md §5. */
+  method: 'drawn' | 'typed';
+  /** For typed signatures, the raw typed name — the text IS the signature;
+   *  the rendered image is only a view of it. */
+  typedName?: string;
 }
 
 interface SignaturePadProps {
@@ -38,6 +44,8 @@ export const SignaturePad: React.FC<SignaturePadProps> = ({
   const [isDrawing, setIsDrawing] = useState(false);
   const [isEmpty, setIsEmpty] = useState(true);
   const [lastPosition, setLastPosition] = useState<{ x: number; y: number } | null>(null);
+  const [mode, setMode] = useState<'draw' | 'type'>('draw');
+  const [typedName, setTypedName] = useState('');
 
   // Initialize/clear canvas background when size or background changes (and on mount).
   useEffect(() => {
@@ -76,8 +84,64 @@ export const SignaturePad: React.FC<SignaturePadProps> = ({
       dataURL: canvas.toDataURL('image/png'),
       isEmpty: false,
       timestamp: new Date(),
+      method: 'drawn',
     };
   }, [isEmpty]);
+
+  // Typed-name signature: render the name onto the canvas as an honest
+  // "view" of the signature (plain font + a "Typed signature" annotation —
+  // never disguised as handwriting), and report the raw text alongside it.
+  const applyTypedName = useCallback((name: string) => {
+    const canvas = canvasRef.current;
+    const ctx = canvas?.getContext('2d');
+    if (!canvas || !ctx) return;
+
+    ctx.fillStyle = backgroundColor;
+    ctx.fillRect(0, 0, width, height);
+
+    const trimmed = name.trim();
+    if (!trimmed) {
+      setIsEmpty(true);
+      onSignatureChange?.(null);
+      return;
+    }
+
+    ctx.fillStyle = strokeColor;
+    ctx.font = '600 28px -apple-system, "Segoe UI", Roboto, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(trimmed, width / 2, height / 2 - 8, width - 32);
+    ctx.font = '400 12px -apple-system, "Segoe UI", Roboto, sans-serif';
+    ctx.fillStyle = '#6b7280';
+    ctx.fillText('Typed signature', width / 2, height / 2 + 24);
+
+    setIsEmpty(false);
+    onSignatureChange?.({
+      dataURL: canvas.toDataURL('image/png'),
+      isEmpty: false,
+      timestamp: new Date(),
+      method: 'typed',
+      typedName: trimmed,
+    });
+  }, [backgroundColor, width, height, strokeColor, onSignatureChange]);
+
+  const switchMode = (nextMode: 'draw' | 'type') => {
+    if (mode === nextMode || disabled) return;
+    setMode(nextMode);
+    setTypedName('');
+    // Switching input methods discards any pending signature — the signer
+    // starts over deliberately in the new mode.
+    const canvas = canvasRef.current;
+    const ctx = canvas?.getContext('2d');
+    if (canvas && ctx) {
+      ctx.fillStyle = backgroundColor;
+      ctx.fillRect(0, 0, width, height);
+    }
+    setIsEmpty(true);
+    setIsDrawing(false);
+    setLastPosition(null);
+    onSignatureChange?.(null);
+  };
 
   const clearSignature = useCallback(() => {
     const canvas = canvasRef.current;
@@ -88,10 +152,11 @@ export const SignaturePad: React.FC<SignaturePadProps> = ({
 
     ctx.fillStyle = backgroundColor;
     ctx.fillRect(0, 0, width, height);
-    
+
     setIsEmpty(true);
     setIsDrawing(false);
     setLastPosition(null);
+    setTypedName('');
     onSignatureChange?.(null);
   }, [width, height, backgroundColor, onSignatureChange]);
 
@@ -120,7 +185,7 @@ export const SignaturePad: React.FC<SignaturePadProps> = ({
   };
 
   const startDrawing = (e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>) => {
-    if (disabled) return;
+    if (disabled || mode !== 'draw') return;
 
     e.preventDefault();
     const position = getEventPosition(e);
@@ -168,8 +233,69 @@ export const SignaturePad: React.FC<SignaturePadProps> = ({
 
   return (
     <div className={`signature-pad-container ${className}`} data-testid="signature-pad-root">
-      <div 
-        className="relative bg-white border-2 border-gray-300 rounded-lg overflow-hidden" 
+      {/* Draw / Type mode toggle — typed names are legally equivalent
+          signatures here; see docs/SIGNATURE_POLICY.md */}
+      <div className="flex gap-2 mb-3" data-testid="signature-mode-toggle">
+        {(['draw', 'type'] as const).map((m) => (
+          <button
+            key={m}
+            type="button"
+            onClick={() => switchMode(m)}
+            disabled={disabled}
+            aria-pressed={mode === m}
+            data-testid={`signature-mode-${m}`}
+            style={{
+              padding: '0.375rem 1rem',
+              borderRadius: 'var(--radius-md)',
+              border: mode === m ? '2px solid #2563eb' : '2px solid #e5e7eb',
+              background: mode === m ? '#eff6ff' : 'white',
+              color: mode === m ? '#1e40af' : '#6b7280',
+              fontWeight: 600,
+              fontSize: '0.875rem',
+              cursor: disabled ? 'not-allowed' : 'pointer',
+            }}
+          >
+            {m === 'draw' ? 'Draw signature' : 'Type name to sign'}
+          </button>
+        ))}
+      </div>
+
+      {mode === 'type' && (
+        <div className="mb-3" data-testid="signature-typed-section">
+          <label
+            htmlFor="typed-signature-name"
+            className="block text-sm font-medium text-gray-700 mb-1"
+          >
+            Type your full name to sign
+          </label>
+          <input
+            id="typed-signature-name"
+            type="text"
+            value={typedName}
+            onChange={(e) => {
+              setTypedName(e.target.value);
+              applyTypedName(e.target.value);
+            }}
+            onKeyDown={(e) => {
+              // Enter must never auto-sign; adoption happens via the
+              // explicit confirm button in the pickup flow.
+              if (e.key === 'Enter') e.preventDefault();
+            }}
+            disabled={disabled}
+            autoComplete="name"
+            className="input-field"
+            style={{ width: `${width}px`, maxWidth: '100%' }}
+            data-testid="typed-signature-input"
+          />
+          <p className="text-sm text-gray-600 mt-1" data-testid="typed-signature-acknowledgment">
+            By typing my name and confirming, I acknowledge receipt of the
+            package(s) listed above.
+          </p>
+        </div>
+      )}
+
+      <div
+        className="relative bg-white border-2 border-gray-300 rounded-lg overflow-hidden"
         data-testid="signature-pad-container"
         style={{
           width: `${width}px`,
@@ -194,7 +320,15 @@ export const SignaturePad: React.FC<SignaturePadProps> = ({
             touchAction: 'none' // Prevent scrolling while drawing
           }}
           role="img"
-          aria-label={isEmpty ? 'Signature area, empty — sign with mouse, touch, or stylus' : 'Signature area — signature captured'}
+          aria-label={
+            isEmpty
+              ? mode === 'draw'
+                ? 'Signature area, empty — sign with mouse, touch, or stylus, or switch to typing your name'
+                : 'Signature preview, empty — type your name above to sign'
+              : mode === 'draw'
+                ? 'Signature area — signature captured'
+                : `Signature preview — typed signature: ${typedName.trim()}`
+          }
           data-testid="signature-pad-canvas"
         />
         
@@ -202,7 +336,9 @@ export const SignaturePad: React.FC<SignaturePadProps> = ({
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none" data-testid="signature-pad-placeholder">
             <div className="text-gray-500 text-center">
                 <div className="text-2xl mb-2" aria-hidden="true" data-testid="signature-pad-placeholder-icon">✍️</div>
-              <p className="text-sm" data-testid="signature-pad-placeholder-text">Sign here</p>
+              <p className="text-sm" data-testid="signature-pad-placeholder-text">
+                {mode === 'draw' ? 'Sign here' : 'Signature preview appears here'}
+              </p>
             </div>
           </div>
         )}
@@ -266,6 +402,12 @@ export const SignatureVerification: React.FC<SignatureVerificationProps> = ({
           </p>
           <p className="text-sm text-blue-700 mb-2" data-testid="signature-verification-timestamp">
             <strong>Signed at:</strong> {signature.timestamp.toLocaleString()}
+          </p>
+          <p className="text-sm text-blue-700 mb-2" data-testid="signature-verification-method">
+            <strong>Method:</strong>{' '}
+            {signature.method === 'typed'
+              ? `Typed name ("${signature.typedName}")`
+              : 'Drawn signature'}
           </p>
         </div>
 

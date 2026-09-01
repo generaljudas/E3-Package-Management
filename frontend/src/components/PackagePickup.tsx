@@ -237,6 +237,8 @@ export const PackagePickup: React.FC<PackagePickupProps> = ({
         tenant_id: selectedTenant?.id, // Optional - allows cross-tenant pickup
         pickup_person_name: workflow.pickupPerson,
         signature_data: workflow.signature.dataURL,
+        signature_method: workflow.signature.method,
+        typed_name: workflow.signature.typedName,
       };
 
       if (isOnline) {

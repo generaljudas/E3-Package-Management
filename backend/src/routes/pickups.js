@@ -30,7 +30,7 @@ router.get('/', async (req, res) => {
       offset = 0,
     } = req.query;
 
-    let whereConditions = ['pe.pickup_timestamp >= CURRENT_TIMESTAMP - INTERVAL \'' + parseInt(days) + ' days\''];
+    let whereConditions = [`pe.pickup_timestamp >= datetime('now', '-${parseInt(days)} days')`];
     let params = [];
     let paramCount = 0;
 
@@ -66,9 +66,9 @@ router.get('/', async (req, res) => {
         CASE WHEN s.id IS NOT NULL THEN 1 ELSE 0 END as has_signature
       FROM pickup_events pe
       JOIN packages p ON pe.package_id = p.id
-      JOIN tenants t ON pe.tenant_id = t.id
-      JOIN mailboxes m ON t.mailbox_id = m.id
-      LEFT JOIN signatures s ON s.pickup_event_id = pe.id
+      LEFT JOIN tenants t ON pe.tenant_id = t.id
+      JOIN mailboxes m ON p.mailbox_id = m.id
+      LEFT JOIN signatures s ON s.package_id = pe.package_id
       WHERE ${whereConditions.join(' AND ')}
       ORDER BY pe.pickup_timestamp DESC
       LIMIT ${limitParam} OFFSET ${offsetParam}
@@ -117,6 +117,14 @@ router.post('/', [
     .optional()
     .isString()
     .withMessage('Signature data must be a string'),
+  body('signature_method')
+    .optional()
+    .isIn(['drawn', 'typed'])
+    .withMessage("Signature method must be 'drawn' or 'typed'"),
+  body('typed_name')
+    .optional()
+    .isLength({ max: 255 })
+    .withMessage('Typed name must be 255 characters or less'),
   body('staff_initials')
     .optional()
     .isLength({ max: 10 })
@@ -130,9 +138,19 @@ router.post('/', [
       tenant_id,
       pickup_person_name,
       signature_data,
+      signature_method,
+      typed_name,
       notes,
       staff_initials,
     } = req.body;
+
+    // A typed signature must carry the raw typed name — the text is the
+    // signature; the image is only a view of it (docs/SIGNATURE_POLICY.md).
+    if (signature_method === 'typed' && (!typed_name || !typed_name.trim())) {
+      return res.status(400).json({
+        error: "A typed signature requires 'typed_name'",
+      });
+    }
 
     // Verify all packages belong to the specified mailbox
     // Allow cross-tenant pickup - real-world mailbox behavior
@@ -200,32 +218,79 @@ router.post('/', [
       UPDATE packages
       SET status = 'picked_up',
           picked_up_at = CURRENT_TIMESTAMP,
+          pickup_by = ?,
           updated_at = CURRENT_TIMESTAMP
       WHERE id IN (${updatePlaceholders})
     `,
-      package_ids
+      [pickup_person_name, ...package_ids]
     );
 
     // Store signature as Base64-encoded PNG in database
     // Format: "data:image/png;base64,iVBORw0KGgo..." (10-50KB typical)
     let signatureIds = [];
+    const signatureIdByPackage = new Map();
     if (signature_data) {
       for (const packageId of package_ids) {
         try {
-          const sigInsert = await dbQuery(
+          await dbQuery(
             `
-            INSERT INTO signatures (package_id, signature_data)
-            VALUES (?, ?)
-            ON CONFLICT(package_id) DO UPDATE SET signature_data = excluded.signature_data
-            RETURNING id
+            INSERT INTO signatures (package_id, signature_data, signature_method, typed_name)
+            VALUES (?, ?, ?, ?)
+            ON CONFLICT(package_id) DO UPDATE SET
+              signature_data = excluded.signature_data,
+              signature_method = excluded.signature_method,
+              typed_name = excluded.typed_name
           `,
-            [packageId, signature_data]
+            [packageId, signature_data, signature_method || 'drawn', typed_name || null]
           );
-          signatureIds.push(sigInsert.rows[0].id);
+          // Re-select rather than trusting lastID: on the upsert's UPDATE
+          // path SQLite does not refresh last_insert_rowid()
+          const sigRow = await dbQuery(
+            `SELECT id FROM signatures WHERE package_id = ?`,
+            [packageId]
+          );
+          signatureIds.push(sigRow.rows[0].id);
+          signatureIdByPackage.set(packageId, sigRow.rows[0].id);
         } catch (sigError) {
           console.error(`Failed to store signature for package ${packageId}:`, sigError);
           // Continue with pickup even if signature storage fails
         }
+      }
+    }
+
+    // Record the pickup event per package — this is the audit trail the
+    // history/reports endpoints read, and the attribution record (who picked
+    // up, witnessed by which staff member, when) that gives the signature its
+    // evidentiary weight (docs/SIGNATURE_POLICY.md §5).
+    const packageById = new Map(packageVerifyResult.rows.map((pkg) => [pkg.id, pkg]));
+    for (const packageId of package_ids) {
+      const pkg = packageById.get(packageId);
+      try {
+        await dbQuery(
+          `
+          INSERT INTO pickup_events (
+            package_id, tenant_id, mailbox_id, pickup_person_name, picked_up_by,
+            signature_id, signature_required, signature_captured, staff_initials,
+            notes, pickup_timestamp, picked_up_at, created_at
+          )
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+        `,
+          [
+            packageId,
+            pkg?.tenant_id ?? tenant_id ?? null,
+            mailbox_id,
+            pickup_person_name,
+            pickup_person_name,
+            signatureIdByPackage.get(packageId) ?? null,
+            signatureRequired ? 1 : 0,
+            signatureIdByPackage.has(packageId) ? 1 : 0,
+            staff_initials || null,
+            notes || null,
+          ]
+        );
+      } catch (eventError) {
+        console.error(`Failed to record pickup event for package ${packageId}:`, eventError);
+        // Continue — the package status update already succeeded
       }
     }
 
@@ -293,12 +358,13 @@ router.get('/:id', [
         t.name as tenant_name,
         t.phone as tenant_phone,
         s.id as signature_id,
-        s.signature_url
+        s.signature_method,
+        s.typed_name
       FROM pickup_events pe
       JOIN packages p ON pe.package_id = p.id
-      JOIN tenants t ON pe.tenant_id = t.id
-      JOIN mailboxes m ON t.mailbox_id = m.id
-      LEFT JOIN signatures s ON s.pickup_event_id = pe.id
+      LEFT JOIN tenants t ON pe.tenant_id = t.id
+      JOIN mailboxes m ON p.mailbox_id = m.id
+      LEFT JOIN signatures s ON s.package_id = pe.package_id
       WHERE pe.id = ?
     `, [id]);
 

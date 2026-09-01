@@ -12,6 +12,8 @@ interface SignatureData {
   id: number;
   package_id: number;
   signature_data?: string;
+  signature_method?: 'drawn' | 'typed';
+  typed_name?: string;
   created_at: string;
   tracking_number?: string;
   status?: string;
@@ -593,6 +595,16 @@ const SignatureRetrieval: React.FC<SignatureRetrievalProps> = ({ onError, onSucc
                   <div className="text-xs text-gray-500 mb-1">Picked Up By</div>
                   <div className="font-semibold text-gray-900">
                     {signatureData.pickup_person_name || signatureData.pickup_by || selectedPackage.pickup_by || 'Not recorded'}
+                  </div>
+                </div>
+              )}
+              {signatureData && (
+                <div>
+                  <div className="text-xs text-gray-500 mb-1">Signature Method</div>
+                  <div className="font-semibold text-gray-900" data-testid="signature-method">
+                    {signatureData.signature_method === 'typed'
+                      ? `Typed name${signatureData.typed_name ? ` ("${signatureData.typed_name}")` : ''}`
+                      : 'Drawn'}
                   </div>
                 </div>
               )}

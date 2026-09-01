@@ -450,6 +450,19 @@ attribution, association** — plus E-SIGN-compliant retention. Concretely:
 Items 4 and 5 are already implemented today; the new work is items 1–3, 6
 (append-only discipline + export parity), and 7.
 
+> **Implementation status (2026-08-31):** done — the signature pad offers
+> "Draw signature" / "Type name to sign" (drawn default); the typed flow pairs
+> the name input with the acknowledgment text and the existing two-step
+> confirm ceremony (Enter never auto-signs); `signatures` carries
+> `signature_method` and `typed_name` (raw text, image annotated "Typed
+> signature", never rendered as fake handwriting); the method is displayed at
+> verification and in Signature Retrieval. Implementing this also surfaced and
+> fixed a set of pre-existing persistence bugs (signature inserts silently
+> failing against a schema missing `package_id`; `pickup_events` never being
+> written at all) — so the attribution record this document leans on
+> (person, staff initials, timestamps, per-package linkage) is now actually
+> being captured. Verified end-to-end in the running app.
+
 ---
 
 ## Sources

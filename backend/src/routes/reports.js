@@ -107,7 +107,7 @@ router.get('/statistics', [
     }
     if (!start_date && !end_date) {
       // Default to last 30 days when no explicit range provided
-      trendsWhere += ` AND p.received_at >= CURRENT_DATE - INTERVAL '30 days'`;
+      trendsWhere += ` AND p.received_at >= date('now', '-30 days')`;
     }
     if (mailbox_id) {
       tIdx++;
@@ -234,7 +234,7 @@ router.get('/pickups', [
 
     // Get pickup events with package details
     const pickupsResult = await dbQuery(`
-      SELECT 
+      SELECT
         pe.id as pickup_event_id,
         pe.pickup_person_name,
         pe.staff_initials,
@@ -244,16 +244,16 @@ router.get('/pickups', [
         t.name as tenant_name,
         t.phone as tenant_phone,
         COUNT(p.id) as package_count,
-        ARRAY_AGG(p.tracking_number ORDER BY p.tracking_number) as tracking_numbers,
-        ARRAY_AGG(p.carrier ORDER BY p.tracking_number) as carriers,
+        GROUP_CONCAT(p.tracking_number) as tracking_numbers,
+        GROUP_CONCAT(p.carrier) as carriers,
         COUNT(CASE WHEN p.high_value = 1 THEN 1 END) as high_value_count,
         COUNT(s.id) as signature_count,
-        pe.id as has_signature -- Will check if signatures exist
+        CASE WHEN COUNT(s.id) > 0 THEN 1 ELSE 0 END as has_signature
       FROM pickup_events pe
-      JOIN mailboxes m ON pe.mailbox_id = m.id
+      JOIN packages p ON pe.package_id = p.id
+      JOIN mailboxes m ON p.mailbox_id = m.id
       LEFT JOIN tenants t ON pe.tenant_id = t.id
-      LEFT JOIN packages p ON pe.id = p.pickup_event_id
-      LEFT JOIN signatures s ON pe.id = s.pickup_event_id
+      LEFT JOIN signatures s ON s.package_id = pe.package_id
       WHERE ${whereConditions.join(' AND ')}
       GROUP BY pe.id, m.mailbox_number, t.name, t.phone
       ORDER BY pe.created_at DESC
@@ -264,9 +264,10 @@ router.get('/pickups', [
     const countResult = await dbQuery(`
       SELECT COUNT(DISTINCT pe.id) as total
       FROM pickup_events pe
-      JOIN mailboxes m ON pe.mailbox_id = m.id
+      JOIN packages p ON pe.package_id = p.id
+      JOIN mailboxes m ON p.mailbox_id = m.id
       LEFT JOIN tenants t ON pe.tenant_id = t.id
-      WHERE ${whereConditions.slice(0, -2).join(' AND ')}
+      WHERE ${whereConditions.join(' AND ')}
     `, params.slice(0, -2));
 
     res.json({
@@ -384,21 +385,21 @@ router.get('/audit', [
       }
 
       auditQueries.push(`
-        SELECT 
+        SELECT
           'pickup' as action_type,
           pe.created_at as timestamp,
           m.mailbox_number,
           t.name as tenant_name,
           pe.pickup_person_name as tracking_number,
-          CONCAT(COUNT(p.id), ' packages') as carrier,
+          (COUNT(p.id) || ' packages') as carrier,
           CASE WHEN COUNT(s.id) > 0 THEN 'With signature' ELSE 'No signature' END as details,
           pe.staff_initials,
-          CONCAT('Pickup by ', pe.pickup_person_name) as description
+          ('Pickup by ' || pe.pickup_person_name) as description
         FROM pickup_events pe
-        JOIN mailboxes m ON pe.mailbox_id = m.id
+        JOIN packages p ON pe.package_id = p.id
+        JOIN mailboxes m ON p.mailbox_id = m.id
         LEFT JOIN tenants t ON pe.tenant_id = t.id
-        LEFT JOIN packages p ON pe.id = p.pickup_event_id
-        LEFT JOIN signatures s ON pe.id = s.pickup_event_id
+        LEFT JOIN signatures s ON s.package_id = pe.package_id
         WHERE pe.created_at >= ${startParam} AND pe.created_at <= ${endParam} ${mailboxCondition}
         GROUP BY pe.id, m.mailbox_number, t.name, pe.pickup_person_name, pe.staff_initials, pe.created_at
       `);
@@ -494,7 +495,7 @@ router.get('/mailbox/:mailboxId/summary', [
         COUNT(DISTINCT p.tenant_id) as associated_tenants
       FROM packages p
       WHERE p.mailbox_id = ? 
-        AND p.received_at >= CURRENT_DATE - INTERVAL '${days} days'
+        AND p.received_at >= date('now', '-' || ${days} || ' days')
     `, [parseInt(mailboxId)]);
 
     // Get recent activity
@@ -510,7 +511,7 @@ router.get('/mailbox/:mailboxId/summary', [
       FROM packages p
       LEFT JOIN tenants t ON p.tenant_id = t.id
       WHERE p.mailbox_id = ?
-        AND p.received_at >= CURRENT_DATE - INTERVAL '${days} days'
+        AND p.received_at >= date('now', '-' || ${days} || ' days')
       ORDER BY p.received_at DESC
       LIMIT 20
     `, [parseInt(mailboxId)]);
