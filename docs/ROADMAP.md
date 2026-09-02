@@ -38,7 +38,7 @@ only, not restyling.
 | 1 | Truth & hygiene pass (README, LICENSE, versions, dead files) | ✅ Done | `dc7fb79` |
 | 2 | Make the packaged desktop app actually work | ✅ Done | `c1ea055` |
 | 3 | Accessibility to WCAG 2.2 AA | ✅ Done¹ | `fix(a11y)` commits; signature decision in `SIGNATURE_POLICY.md` |
-| 4 | Docs restructure, screenshots, GitHub release | 🟡 Nearly done | Docs, screenshots, install guide and release workflow landed 2026-09-01; the `v1.0.0-beta.1` tag and Windows smoke test remain |
+| 4 | Docs restructure, screenshots, GitHub release | 🟡 Draft release ready | `5045127`, `cd63fc1`; tag `v1.0.0-beta.1` built by CI run `33600004419` into a draft release — Windows smoke test, then publish |
 
 ¹ One deferred nit: M11 in [A11Y_AUDIT.md](A11Y_AUDIT.md) (MailboxSearch
 arrow-key highlight pattern) plus that file's Low list — enhancements to an
@@ -118,12 +118,18 @@ production in Phase 2 — screenshots should no longer show them once retaken.
       **draft** release. Per-OS builds are mandatory — the native SQLite driver in
       `backend/node_modules` is compiled for the build machine, so a Windows installer
       built from this Mac would not start.
-- [ ] Push the `v1.0.0-beta.1` tag, let CI build, paste the CHANGELOG entry into the
-      draft release, then publish — Windows first-class, macOS (Apple Silicon only) and
-      Linux secondary, all unsigned
-- [ ] One manual smoke test of the Windows installer on a real Windows machine before
-      the draft is published (install → SmartScreen walkthrough matches INSTALL.md →
-      intake → pickup → signature retrieval → quit → relaunch keeps data)
+- [x] `v1.0.0-beta.1` tagged and pushed 2026-09-01; CI run `33600004419` built all three
+      installers (Windows, macOS arm64, Linux) and created the **draft** release with the
+      CHANGELOG entry as its notes. Windows first-class, macOS (Apple Silicon only) and
+      Linux secondary, all unsigned.
+- [ ] **Publish the draft** — after one manual smoke test of the Windows installer on a
+      real Windows machine (install → SmartScreen walkthrough matches INSTALL.md →
+      intake → pickup → signature retrieval → quit → relaunch keeps data). Nothing is
+      public until the draft is published.
+- [ ] Housekeeping flagged by CI: `actions/checkout`, `setup-node`, `upload-artifact`,
+      `download-artifact` and `softprops/action-gh-release` are on Node 20-era majors;
+      GitHub is forcing them onto Node 24 with a deprecation warning. Bump to the next
+      majors when convenient.
 
 ---
 
@@ -140,9 +146,11 @@ Decided deliberately, not forgotten:
 
 ## Suggested next action
 
-Ship it: push the `v1.0.0-beta.1` tag, watch the three CI builds, download
-the Windows installer from the draft release and run the smoke test above
-on real Windows hardware, then publish the release with the CHANGELOG entry
-as its notes. If the Windows build fails to start, the first suspects are
-the native SQLite driver (check the CI job installed `backend` deps on the
-Windows runner) and port 3001.
+Download the Windows installer from the draft release
+(https://github.com/generaljudas/E3-Package-Management/releases — drafts are
+visible only to repo collaborators), run the smoke test above on real
+Windows hardware, then click **Publish release**. If the Windows build fails
+to start, the first suspects are the native SQLite driver (check the CI job
+installed `backend` deps on the Windows runner) and port 3001. If it passes,
+Phase 4 — and this chapter — is done; the next chapter is the visual
+redesign via Claude Design.
