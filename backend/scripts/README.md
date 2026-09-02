@@ -32,9 +32,14 @@ From your text file format, the script intelligently extracts:
 ### Step 1: Preview Your Data (RECOMMENDED FIRST)
 
 ```bash
-cd "/Users/macboundgeneral/E3 Package Manager"
+cd path/to/E3-Package-Management     # the repository root
 node backend/scripts/migrate-customer-data.js /path/to/your/customers.txt
 ```
+
+The script writes to the same database the backend uses (`DB_PATH` /
+`E3_DB_PATH` in `backend/.env`, or `backend/database.sqlite` by default). For a
+packaged desktop install, point `E3_DB_PATH` at the app's database file — see
+"Where is my data?" in [`docs/INSTALL.md`](../../docs/INSTALL.md).
 
 This will:
 - Parse the file

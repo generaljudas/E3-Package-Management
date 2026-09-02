@@ -449,6 +449,7 @@ All configuration is optional; defaults work out of the box.
 
 ```bash
 PORT=3001                            # API server port
+HOST=127.0.0.1                       # Loopback only — the API has no auth; don't expose it
 NODE_ENV=development                 # development | production
 FRONTEND_URL=http://localhost:5173   # CORS allowed origin
 DB_PATH=./database.sqlite            # SQLite file (relative = from backend/)
@@ -760,6 +761,6 @@ This app uses stable data-testid attributes and accessible names to identify UI 
 
 - Questions and bugs: [GitHub Issues](https://github.com/generaljudas/E3-Package-Management/issues)
 - Current mission and task list: see [ROADMAP.md](ROADMAP.md)
-- Release notes: see [ALPHA_RELEASE.md](../ALPHA_RELEASE.md) (to be replaced by a `CHANGELOG.md` — see roadmap)
-
-`CONTRIBUTING.md` does not exist yet; adding it is a roadmap item.
+- Release notes: [CHANGELOG.md](../CHANGELOG.md)
+- How to contribute, coding standards, privacy rules: [CONTRIBUTING.md](../CONTRIBUTING.md)
+- Installing an unsigned build (SmartScreen / Gatekeeper): [INSTALL.md](INSTALL.md)

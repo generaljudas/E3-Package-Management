@@ -1,6 +1,6 @@
 # Roadmap: "E3 Package Manager, ready for its first stranger"
 
-**Status as of:** 2026-08-31
+**Status as of:** 2026-09-01
 **Source:** recovered verbatim from a `/grilling` session (2026-08-30) that was cut off by a
 session limit before its findings could be delivered. This document is the durable
 replacement for that lost conversation — treat it as the source of truth for scope and
@@ -38,7 +38,7 @@ only, not restyling.
 | 1 | Truth & hygiene pass (README, LICENSE, versions, dead files) | ✅ Done | `dc7fb79` |
 | 2 | Make the packaged desktop app actually work | ✅ Done | `c1ea055` |
 | 3 | Accessibility to WCAG 2.2 AA | ✅ Done¹ | `fix(a11y)` commits; signature decision in `SIGNATURE_POLICY.md` |
-| 4 | Docs restructure, screenshots, GitHub release | 🟡 Partial | `docs/DOCUMENTATION.md` committed (`f8eaf90`) |
+| 4 | Docs restructure, screenshots, GitHub release | 🟡 Nearly done | Docs, screenshots, install guide and release workflow landed 2026-09-01; the `v1.0.0-beta.1` tag and Windows smoke test remain |
 
 ¹ One deferred nit: M11 in [A11Y_AUDIT.md](A11Y_AUDIT.md) (MailboxSearch
 arrow-key highlight pattern) plus that file's Low list — enhancements to an
@@ -92,22 +92,38 @@ production in Phase 2 — screenshots should no longer show them once retaken.
 
 ---
 
-## Phase 4 — Docs, screenshots, release — partial
+## Phase 4 — Docs, screenshots, release — nearly done
 
-- [x] `docs/DOCUMENTATION.md` written and committed (references to the not-yet-existing
-      `CONTRIBUTING.md`/`CHANGELOG.md` were corrected to point at real files until those
-      land)
-- [ ] Retire `ALPHA_RELEASE.md` in favor of `CHANGELOG.md`
-- [ ] Add `CONTRIBUTING.md`
-- [ ] Retake screenshots (current 5 are dated Feb 17 2026, ~6.9MB, taken before Phase 2's
-      overlay-gating fix — likely still show "Offline Status (Dev)" / "Test IDs: OFF").
-      Add a new Manage Mailboxes & Tenants shot. **Deliberately sequenced after Phase 3**
-      so they reflect the accessible UI, not before.
-- [ ] Tag and publish `v1.0.0-beta.1` on GitHub Releases — Windows installer first-class,
-      macOS/Linux secondary, all unsigned
-- [ ] Write an illustrated "you'll see this warning, here's the two clicks past it"
-      install guide for unsigned Windows SmartScreen / macOS Gatekeeper
-- [ ] Flag the Windows build artifact for one manual smoke test on a real Windows machine
+- [x] `docs/DOCUMENTATION.md` written and committed (`f8eaf90`)
+- [x] `ALPHA_RELEASE.md` retired in favor of `CHANGELOG.md` (Keep-a-Changelog format,
+      every entry cites its commit). The stale root `DOCUMENTATION.md`,
+      `SIGNATURE_RETRIEVAL_FEATURE.md` and `MIGRATION_GUIDE.md` went with it — their
+      content lives in `docs/DOCUMENTATION.md` and `backend/scripts/README.md`.
+- [x] `CONTRIBUTING.md` — setup, standards (keyboard-first, WCAG 2.2 AA, no real
+      customer data, SQLite-only SQL), docs conventions, PR process.
+- [x] Screenshots retaken 2026-09-01 from the **production build** loaded via `file://`
+      (exactly as the packaged app does) against a fresh seeded database: 8 shots,
+      3.8MB total, no dev overlays, accessible UI, typed-signature flow and Signature
+      Retrieval included. The driver script is reproducible (Electron + DevTools
+      protocol, no Playwright) — see the commit for the approach.
+      Taking them against a fresh DB **surfaced four broken endpoints** (`GET /packages`,
+      `/packages/tenant/:id`, `/packages/tracking/:n`, `/tenants/search` — all
+      `no such column: mailbox_number`) and a timezone bug in displayed
+      received/pickup times. All fixed; see `CHANGELOG.md`.
+- [x] `docs/INSTALL.md` — the "you'll see this warning, here's the two clicks past it"
+      guide for SmartScreen and Gatekeeper, plus where the data lives, updating, and
+      first-launch troubleshooting.
+- [x] Release workflow (`.github/workflows/release.yml`): builds Windows/macOS/Linux
+      installers on their own OS runners on a `v*` tag and attaches them to a
+      **draft** release. Per-OS builds are mandatory — the native SQLite driver in
+      `backend/node_modules` is compiled for the build machine, so a Windows installer
+      built from this Mac would not start.
+- [ ] Push the `v1.0.0-beta.1` tag, let CI build, paste the CHANGELOG entry into the
+      draft release, then publish — Windows first-class, macOS (Apple Silicon only) and
+      Linux secondary, all unsigned
+- [ ] One manual smoke test of the Windows installer on a real Windows machine before
+      the draft is published (install → SmartScreen walkthrough matches INSTALL.md →
+      intake → pickup → signature retrieval → quit → relaunch keeps data)
 
 ---
 
@@ -124,6 +140,9 @@ Decided deliberately, not forgotten:
 
 ## Suggested next action
 
-Phase 4 cleanup and release: CHANGELOG/CONTRIBUTING, fresh screenshots (now
-safe to take — the accessible UI is in place), tag `v1.0.0-beta.1`,
-unsigned-installer warning walkthrough.
+Ship it: push the `v1.0.0-beta.1` tag, watch the three CI builds, download
+the Windows installer from the draft release and run the smoke test above
+on real Windows hardware, then publish the release with the CHANGELOG entry
+as its notes. If the Windows build fails to start, the first suspects are
+the native SQLite driver (check the CI job installed `backend` deps on the
+Windows runner) and port 3001.

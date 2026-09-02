@@ -4,40 +4,67 @@ A package inventory management system for mailbox renting centers. Built with a 
 
 > **Open Source Project**: Free and open source under the MIT license. No database setup required — the app creates a local SQLite database and seeds demo data on first run.
 
-## 🖼️ UI Screenshots
+## ⬇️ Download & Install
 
+Grab the installer for your computer from the **[latest release](https://github.com/generaljudas/E3-Package-Management/releases/latest)**:
 
-<p>
-	<img src="docs/screenshots/home.png" alt="Home" width="900" />
-</p>
+| Platform | File | Notes |
+|---|---|---|
+| Windows 10/11 | `E3-Package-Manager-Setup-<version>.exe` | Recommended. Double-click, follow the installer. |
+| macOS (Apple Silicon) | `E3-Package-Manager-<version>-arm64.dmg` | Drag to Applications. |
+| Linux | `E3-Package-Manager-<version>.AppImage` | `chmod +x`, then run. |
 
-<p>
-	<img src="docs/screenshots/package-pickup.png" alt="Package pickup" width="900" />
-</p>
+The installers are **not code-signed yet**, so Windows and macOS will show a
+warning the first time. It takes two clicks to get past —
+**[docs/INSTALL.md](docs/INSTALL.md)** shows exactly what you'll see and what
+to click. Everything else is automatic: no database to set up, no server to
+run, no account to create.
 
-<p>
-	<img src="docs/screenshots/confirm-packages-pickedup.png" alt="Confirm packages picked up" width="900" />
-</p>
+## 🖼️ Screenshots
 
-<p>
-	<img src="docs/screenshots/confirm-signature.png" alt="Confirm signature" width="900" />
-</p>
+**Find the mailbox** — type a number or a name; Enter selects the exact match so a scanner-and-keyboard workflow never touches the mouse.
 
-<p>
-	<img src="docs/screenshots/tools.png" alt="Tools" width="900" />
-</p>
+<p><img src="docs/screenshots/home.png" alt="Home screen: the mailbox search shows a dropdown match for Mailbox 101 with its default tenant, John Smith" width="900" /></p>
+
+**Package intake** — the tenant is pre-selected, the scanner box is armed, and each scanned tracking number lands in the batch. One click registers them all.
+
+<p><img src="docs/screenshots/package-intake.png" alt="Package intake for Mailbox 101 with John Smith selected and three tracking numbers waiting in the batch to register" width="900" /></p>
+
+**Package pickup** — filter by status or by mailbox, search, select all, proceed.
+
+<p><img src="docs/screenshots/package-pickup.png" alt="Package pickup list filtered to Mailbox 101 showing three received packages with checkboxes" width="900" /></p>
+
+**Sign for the pickup** — draw on a touchscreen or with a mouse…
+
+<p><img src="docs/screenshots/confirm-signature.png" alt="Digital signature step with a drawn signature on the pad and a Confirm Signature button" width="900" /></p>
+
+…or type a name, which is an equally valid signature and fully keyboard-accessible (see [docs/SIGNATURE_POLICY.md](docs/SIGNATURE_POLICY.md)).
+
+<p><img src="docs/screenshots/signature-typed.png" alt="Digital signature step in Type name to sign mode: a text field containing John Smith and an acknowledgment that typing the name signs for the packages" width="900" /></p>
+
+**Look a signature up later** — by tracking number, or by mailbox and date range. The record shows who picked up, when, and how it was signed.
+
+<p><img src="docs/screenshots/signature-retrieval.png" alt="Signature Retrieval tool showing the picked-up package 1Z999AA10123456784, mailbox 101, tenant John Smith, signature method Typed name, and the signature record" width="900" /></p>
+
+**Tools** — signatures, mailbox and tenant management, reports.
+
+<p><img src="docs/screenshots/tools.png" alt="Tools screen with three large cards: View Package Signatures, Manage Mailboxes and Tenants, Reports" width="900" /></p>
+
+<p><img src="docs/screenshots/mailbox-detail.png" alt="Mailbox 101 detail in Manage Mailboxes and Tenants, listing tenant John Smith with edit and delete buttons and an Add Tenant button" width="900" /></p>
 
 ## 🏗️ Architecture
 
 - **Frontend**: React + TypeScript + Vite
 - **Backend**: Node.js + Express + SQLite (created automatically on first run)
-- **Desktop**: Electron shell (packaged installers in progress — see Roadmap)
+- **Desktop**: Electron shell — the backend runs on Electron's bundled Node, the database lives in your OS user-data folder
 
-## 🚀 Quick Start
+## 🚀 Quick Start (from source)
+
+If you just want to use the app, see [Download & Install](#%EF%B8%8F-download--install) above. The steps below are for running from source.
 
 ### Prerequisites
 
-- Node.js 18+
+- Node.js 20.19 or newer (Node 22 LTS recommended)
 - npm
 
 ### 1. Backend
@@ -64,6 +91,14 @@ npm run dev
 - **Backend API**: http://localhost:3001
 - **API Health**: http://localhost:3001/api/health
 
+### 4. Desktop shell and installers (optional)
+
+```bash
+npm install
+npm run electron:dev      # opens the Electron window against the two dev servers
+npm run electron:build    # builds an installer for the current OS into dist-electron/
+```
+
 ## 📋 Key Features
 
 ### 🔍 Instant Tenant Lookup
@@ -79,9 +114,12 @@ npm run dev
 
 ### 📤 Package Pickup
 - Package list with status filtering and search
-- Digital signature capture on pickup
+- Signature on pickup — draw it, or type your name (a typed name is a valid signature; see [docs/SIGNATURE_POLICY.md](docs/SIGNATURE_POLICY.md))
 - Bulk pickup processing
 - Audit trail for all pickup events
+
+### ♿ Accessibility
+- WCAG 2.2 AA: every control has a name and role, status changes are announced to screen readers, focus is managed through multi-step flows, and every screen is operable without a mouse — see [docs/A11Y_AUDIT.md](docs/A11Y_AUDIT.md)
 
 ### 🛠️ Tools
 - Manage mailboxes and their tenants
@@ -146,7 +184,7 @@ E3 Package Manager/
 | `/api/reports` | Statistics, pickup history, audit logs |
 | `/api/health` | Health check |
 
-See [DOCUMENTATION.md](DOCUMENTATION.md) for details.
+See [docs/DOCUMENTATION.md](docs/DOCUMENTATION.md) for the full reference (schema, API, data flow, `data-testid` catalog).
 
 ## 🔧 Configuration
 
@@ -168,22 +206,21 @@ VITE_API_URL=http://localhost:3001/api
 
 ## 🗺️ Roadmap
 
-- **Desktop installers** — one-click download-and-run app for Windows, macOS, and Linux (Windows first)
+The mission, what's done, and what's next live in **[docs/ROADMAP.md](docs/ROADMAP.md)**. Deliberately later:
+
 - **Signed builds** — code signing and notarization so installers run without security warnings
-- **Automated test suite**
-- **Accessibility** — WCAG 2.2 AA conformance
 - **Auto-update** — in-app updates for installed desktop builds
+- **Automated test suite**
 - **Multi-station support** — multiple front-desk computers sharing one database (PostgreSQL)
-- **OpenAPI documentation**
-- **PWA installation** — home-screen install with full service-worker support
+- **Visual redesign** — a separate chapter, after the above
+
+Release history: [CHANGELOG.md](CHANGELOG.md).
 
 ## 🤝 Contributing
 
-1. Fork the repository
-2. Create feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit changes (`git commit -m 'Add amazing feature'`)
-4. Push to branch (`git push origin feature/amazing-feature`)
-5. Open Pull Request
+Bug reports, Windows smoke tests, doc fixes, and code are all welcome — start
+with **[CONTRIBUTING.md](CONTRIBUTING.md)** for setup, standards (keyboard-first,
+WCAG 2.2 AA, no real customer data), and the PR process.
 
 ## 📄 License
 

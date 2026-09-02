@@ -1,0 +1,98 @@
+# Builds the desktop installers on each target OS and attaches them to a draft
+# GitHub release when a v* tag is pushed.
+#
+# Why per-OS runners: the backend ships a native SQLite driver
+# (backend/node_modules/sqlite3) compiled for the machine that ran `npm install`.
+# A Windows installer built on a Mac would contain a Mac binary and fail to
+# start. Each job installs on its own OS so the driver matches.
+#
+# The installers are unsigned on purpose (no code-signing certificate yet — see
+# docs/ROADMAP.md and docs/INSTALL.md). CSC_IDENTITY_AUTO_DISCOVERY=false keeps
+# electron-builder from trying to sign with whatever it finds on the runner.
+
+name: Release installers
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build (${{ matrix.label }})
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            label: windows
+          - os: macos-latest
+            label: macos
+          - os: ubuntu-latest
+            label: linux
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            backend/package-lock.json
+            frontend/package-lock.json
+
+      # Production deps only: this folder is copied verbatim into the installer.
+      - name: Install backend
+        working-directory: backend
+        run: npm ci --omit=dev
+
+      - name: Install frontend
+        working-directory: frontend
+        run: npm ci
+
+      - name: Install Electron + builder
+        run: npm ci
+
+      # electron:build runs the frontend build first (preelectron:build).
+      # --publish never: the release job below attaches the files; don't let
+      # electron-builder create its own release too.
+      - name: Build installer
+        run: npm run electron:build -- --publish never
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: installer-${{ matrix.label }}
+          path: |
+            dist-electron/*.exe
+            dist-electron/*.dmg
+            dist-electron/*.AppImage
+          if-no-files-found: error
+
+  release:
+    name: Draft GitHub release
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: installers
+          merge-multiple: true
+
+      - name: List installers
+        run: ls -la installers
+
+      # Draft so the release notes can be pasted in from CHANGELOG.md and the
+      # Windows build smoke-tested before anyone can download it.
+      - uses: softprops/action-gh-release@v2
+        with:
+          draft: true
+          prerelease: ${{ contains(github.ref_name, '-') }}
+          files: installers/*

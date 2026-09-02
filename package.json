@@ -59,7 +59,8 @@
       }
     ],
     "win": {
-      "target": ["nsis"]
+      "target": ["nsis"],
+      "artifactName": "E3-Package-Manager-Setup-${version}.${ext}"
     },
     "nsis": {
       "oneClick": false,
@@ -70,11 +71,13 @@
     },
     "mac": {
       "target": ["dmg"],
-      "category": "public.app-category.business"
+      "category": "public.app-category.business",
+      "artifactName": "E3-Package-Manager-${version}-${arch}.${ext}"
     },
     "linux": {
       "target": ["AppImage"],
-      "category": "Office"
+      "category": "Office",
+      "artifactName": "E3-Package-Manager-${version}.${ext}"
     }
   }
 }
