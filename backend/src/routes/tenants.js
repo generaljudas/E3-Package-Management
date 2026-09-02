@@ -75,29 +75,38 @@ router.get('/search', [
   try {
     const searchQuery = req.query.q.toLowerCase();
     
+    // mailbox_number lives on mailboxes, not tenants — join for it.
     const result = await dbQuery(`
-      SELECT 
-        id,
-        mailbox_number,
-        name,
-        phone,
-        email
-      FROM tenants 
-      WHERE active = 1
+      SELECT
+        t.id,
+        t.mailbox_id,
+        m.mailbox_number,
+        t.name,
+        t.phone,
+        t.email
+      FROM tenants t
+      JOIN mailboxes m ON t.mailbox_id = m.id
+      WHERE t.active = 1
         AND (
-          LOWER(mailbox_number) LIKE ?
-          OR LOWER(name) LIKE ?
+          LOWER(m.mailbox_number) LIKE ?
+          OR LOWER(t.name) LIKE ?
         )
-      ORDER BY 
-        CASE 
-          WHEN LOWER(mailbox_number) = ? THEN 1
-          WHEN LOWER(mailbox_number) LIKE ? THEN 2
-          WHEN LOWER(name) LIKE ? THEN 3
+      ORDER BY
+        CASE
+          WHEN LOWER(m.mailbox_number) = ? THEN 1
+          WHEN LOWER(m.mailbox_number) LIKE ? THEN 2
+          WHEN LOWER(t.name) LIKE ? THEN 3
           ELSE 4
         END,
-        mailbox_number
+        m.mailbox_number
       LIMIT 10
-    `, [`%${searchQuery}%`, searchQuery]);
+    `, [
+      `%${searchQuery}%`,
+      `%${searchQuery}%`,
+      searchQuery,
+      `${searchQuery}%`,
+      `%${searchQuery}%`,
+    ]);
 
     res.json({
       tenants: result.rows,

@@ -25,6 +25,10 @@ dotenv.config({ path: join(__dirname, '../.env') });
 
 const app = express();
 const PORT = process.env.PORT || 3001;
+// Loopback only: this API has no authentication, so it must not be reachable
+// from other machines on the network. (Also avoids the Windows Firewall prompt
+// on first launch.) Set HOST=0.0.0.0 deliberately if you know what you're doing.
+const HOST = process.env.HOST || '127.0.0.1';
 
 // Security middleware
 app.use(helmet({
@@ -159,8 +163,8 @@ const startServer = async () => {
     await initDatabase();
     
     // Start server
-    const server = app.listen(PORT, () => {
-      console.log(`🚀 E3 Package Manager API running on port ${PORT}`);
+    const server = app.listen(PORT, HOST, () => {
+      console.log(`🚀 E3 Package Manager API running on port ${PORT} (${HOST})`);
       console.log(`📊 Health check: http://localhost:${PORT}/health`);
       console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
       console.log(`💾 Database: SQLite (${process.env.ELECTRON_MODE === 'true' ? 'Electron' : 'Dev'} mode)`);

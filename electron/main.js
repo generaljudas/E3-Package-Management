@@ -81,7 +81,7 @@ function waitForBackend(onReady) {
   const check = () => {
     if (startupFailed) return;
     http
-      .get(`http://localhost:${BACKEND_PORT}/api/health`, (res) => {
+      .get(`http://127.0.0.1:${BACKEND_PORT}/api/health`, (res) => {
         res.resume();
         if (res.statusCode === 200) onReady();
         else retry();

@@ -56,7 +56,7 @@ router.get('/', [
 
     if (tracking_number) {
       paramCount++;
-      whereConditions.push(`p.tracking_number ILIKE $${paramCount}`);
+      whereConditions.push(`p.tracking_number LIKE $${paramCount}`);
       params.push(`%${tracking_number}%`);
     }
 
@@ -82,21 +82,22 @@ router.get('/', [
         p.notes,
         p.received_at,
         p.picked_up_at as pickup_date,
-        t.mailbox_number,
+        m.mailbox_number,
         t.name as tenant_name,
         t.phone as tenant_phone
       FROM packages p
       JOIN tenants t ON p.tenant_id = t.id
+      JOIN mailboxes m ON p.mailbox_id = m.id
       WHERE ${whereConditions.join(' AND ')}
       ORDER BY p.received_at DESC
       LIMIT ${limitParam} OFFSET ${offsetParam}
     `, params);
 
-    // Get total count for pagination
+    // Get total count for pagination — same WHERE, minus the limit/offset params.
     const countResult = await dbQuery(`
       SELECT COUNT(*) as total
       FROM packages p
-      WHERE ${whereConditions.slice(0, -2).join(' AND ')}
+      WHERE ${whereConditions.join(' AND ')}
     `, params.slice(0, -2));
 
     res.json({
@@ -143,11 +144,12 @@ router.get('/tenant/:tenantId', [
         p.size_category,
         p.notes,
         p.received_at,
-        t.mailbox_number,
+        m.mailbox_number,
         t.name as tenant_name
       FROM packages p
       JOIN tenants t ON p.tenant_id = t.id
-      WHERE p.tenant_id = ? 
+      JOIN mailboxes m ON p.mailbox_id = m.id
+      WHERE p.tenant_id = ?
         AND p.status IN (${statusPlaceholders})
       ORDER BY p.received_at DESC
     `, [parseInt(tenantId), ...statusArray]);
@@ -300,12 +302,13 @@ router.get('/tracking/:trackingNumber', [
         p.notes,
         p.received_at,
         p.picked_up_at as pickup_date,
-        t.mailbox_number,
+        m.mailbox_number,
         t.name as tenant_name,
         t.phone as tenant_phone,
         t.email as tenant_email
       FROM packages p
       JOIN tenants t ON p.tenant_id = t.id
+      JOIN mailboxes m ON p.mailbox_id = m.id
       WHERE p.tracking_number = ?
     `, [trackingNumber]);
 

@@ -7,6 +7,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import SignaturePad, { SignatureVerification, type SignatureData } from './SignaturePad';
 import { useOfflineOperations } from '../hooks/useOffline';
 import { API_BASE_URL } from '../services/api';
+import { parseServerDate } from '../utils/dates';
 import type { Mailbox, Tenant, PickupRequest, PickupResponse } from '../types';
 
 interface PackagePickupProps {
@@ -295,7 +296,9 @@ export const PackagePickup: React.FC<PackagePickupProps> = ({
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
+    const date = parseServerDate(dateString);
+    if (!date) return '';
+    return date.toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
       hour: '2-digit',

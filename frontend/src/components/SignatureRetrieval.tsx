@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { searchPackagesByDateRange, getSignatureByPackageId } from '../services/api';
 import MailboxLookup from './MailboxLookup';
+import { parseServerDate } from '../utils/dates';
 import type { Mailbox, Package } from '../types';
 
 interface SignatureRetrievalProps {
@@ -204,7 +205,8 @@ const SignatureRetrieval: React.FC<SignatureRetrievalProps> = ({ onError, onSucc
   };
 
   const formatDateTime = (dateString: string) => {
-    const date = new Date(dateString);
+    const date = parseServerDate(dateString);
+    if (!date) return '';
     return date.toLocaleString('en-US', {
       month: 'short',
       day: 'numeric',
